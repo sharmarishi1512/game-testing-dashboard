@@ -178,38 +178,38 @@ SG_70,Signup,reCAPTCHA,Verify the Google reCAPTCHA checkbox is displayed.,"1. Na
 2. Check for the presence of the Google reCAPTCHA checkbox.",The Google reCAPTCHA checkbox should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
 SG_71,Signup,reCAPTCHA,Verify the user cannot proceed without completing the Google reCAPTCHA.,"1. Navigate to the signup page.
 2. Fill in all required fields.
-3. Attempt to submit the form without checking the reCAPTCHA checkbox.",An error message should be displayed indicating that the reCAPTCHA must be completed.,,Negative,Test,Fail,Pass,Pass,Pass
+3. Attempt to submit the form without checking the reCAPTCHA checkbox.",An error message should be displayed indicating that the reCAPTCHA must be completed.,,Negative,Test,Fail,Pass,Pass,Fail
 SG_72,Signup,reCAPTCHA,Verify the Google reCAPTCHA passes when completed.,"1. Navigate to the signup page.
 2. Fill in all required fields.
 3. Check the reCAPTCHA checkbox and successfully complete the challenge, if any.
-4. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+4. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Fail
 SG_73,Signup,Slider Captcha,Verify the slider-based puzzle captcha is displayed.,"1. Navigate to the signup page.
-2. Check for the presence of the slider-based puzzle captcha.",The slider-based puzzle captcha should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+2. Check for the presence of the slider-based puzzle captcha.",The slider-based puzzle captcha should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Fail
 SG_74,Signup,Slider Captcha,Verify the user cannot proceed without completing the slider-based captcha.,"1. Navigate to the signup page.
 2. Fill in all required fields.
 3. Check Google reCaptcha if present
-4. Attempt to submit the form without completing the slider-based captcha.",An error message should be displayed indicating that the slider-based captcha must be completed.,,Negative,Test,Fail,Pass,Pass,Pass
+4. Attempt to submit the form without completing the slider-based captcha.",An error message should be displayed indicating that the slider-based captcha must be completed.,,Negative,Test,Fail,Pass,Pass,Fail
 SG_75,Signup,Slider Captcha,Verify the slider-based captcha passes when completed.,"1. Navigate to the signup page.
 2. Fill in all required fields.
 3. Check Google reCaptcha if present
 4. Complete the slider-based captcha successfully.
-5. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+5. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Fail
 SG_76,Signup,Next Button,Verify the 'Next' button is initially disabled.,"1. Navigate to the signup page.
-2. Check the state of the 'Next' button.",The 'Next' button should be disabled.,,Positive,Test,Fail,Pass,Pass,Pass
+2. Check the state of the 'Next' button.",The 'Next' button should be disabled.,,Positive,Test,Fail,Pass,Pass,Fail
 SG_77,Signup,Next Button,Verify the 'Next' button is enabled only when all required fields are filled correctly and both CAPTCHAs are passed.,"1. Navigate to the signup page.
 2. Fill in all required fields with valid data.
 3. Complete both CAPTCHAs.
-4. Check the state of the 'Next' button.",The 'Next' button should be enabled.,,Positive,Test,Fail,Pass,Pass,Pass
+4. Check the state of the 'Next' button.",The 'Next' button should be enabled.,,Positive,Test,Fail,Pass,Pass,Fail
 SG_78,Signup,Or Signup With Google Button,Verify the 'Or Signup With Google' button is displayed.,"1. Navigate to the signup page.
-2. Check for the presence of the 'Or Signup With Google' button.",The 'Or Signup With Google' button should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Pass
+2. Check for the presence of the 'Or Signup With Google' button.",The 'Or Signup With Google' button should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Fail
 SG_79,Signup,Or Signup With Google Button,Verify clicking 'Or Signup With Google' redirects to Google authentication page.,"1. Navigate to the signup page.
 2. Click the 'Or Signup With Google' button.
-3. Check if the page redirects to Google authentication.",The page should redirect to the Google authentication page.,,Positive,Test,Pass,Pass,Pass,Pass
+3. Check if the page redirects to Google authentication.",The page should redirect to the Google authentication page.,,Positive,Test,Pass,Pass,Pass,Fail
 SG_80,Signup,Or Signup With Google Button,Verify the 'Or Signup With Google' button is working with valid google account.,"1. Navigate to the signup page.
 2. Click the 'Or Signup With Google' button.
-3. Login with valid google account",The user should be signed up succesfully if the google account is valid.,,Positive,Test,Pass,Pass,Pass,Pass
+3. Login with valid google account",The user should be signed up succesfully if the google account is valid.,,Positive,Test,Pass,Pass,Pass,Fail
 SG_81,Signup,Already have an account Login Link,Verify the 'Already have an account? Login' link is displayed.,"1. Navigate to the signup page.
-2. Check for the presence of the 'Already have an account? Login' link.",The 'Already have an account? Login' link should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Pass
+2. Check for the presence of the 'Already have an account? Login' link.",The 'Already have an account? Login' link should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Fail
 SG_82,Signup,Already have an account Login Link,Verify clicking 'Already have an account? Login' redirects to the Login page.,"1. Navigate to the signup page.
 2. Click the 'Already have an account? Login' link.
 3. Check if the page redirects to the Login page.",The page should redirect to the Login page.,,Positive,Test,Pass,Pass,Pass,Pass

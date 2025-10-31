@@ -1,362 +1,356 @@
-import csv
-import io
 import json
-import re
-from datetime import datetime
 from pathlib import Path
-from collections import Counter
+import io
+import csv
+from datetime import datetime
+
 import streamlit as st
 
 
-def _normalize_status(s: str) -> str:
-    if not s:
-        return "Not Tested"
-    s_low = s.strip().lower()
-    if s_low.startswith("pass") or s_low == "passed":
-        return "Pass"
-    if "fail" in s_low:
-        return "Fail"
-    if s_low in ("not tested", "not-tested", "nottested"):
-        return "Not Tested"
-    return s.strip()
-
-
 def render():
-    """Render the Reports page with exactly the requested charts.
-
-    Behavior:
-    - Counts are based on unique `Test Case ID` values (duplicates ignored).
-    - 1) Pie chart: Positive vs Negative test cases (by Test Case Type).
-    - 2) Pie chart: Pass vs Fail (by normalized Status).
-    - 3) Bar chart: number of unique test cases per Module.
-    """
+    """Render the Reports page: read stored test cases and show charts/filters/download."""
     st.header("Reports")
+    st.write("Visualize test cases stored in `Reports/test_cases.json`.")
 
     repo_root = Path(__file__).resolve().parents[1]
-    tc_file = repo_root / "Reports" / "test_cases.json"
+    testcases_file = repo_root / "Reports" / "test_cases.json"
 
-    # Allow the user to upload a CSV. If provided, use it as the source of records
-    uploaded = st.file_uploader("Upload CSV to generate report (optional)", type=["csv"], help="Upload a CSV in the same format as 'Final Report - Test Cases format.csv'. If not provided, the page will read Reports/test_cases.json.")
-    records = None
+    # Allow CSV upload to override reading the JSON file
+    uploaded = st.file_uploader("Upload CSV to generate report (optional)", type=["csv"])
+
+    csv_header = None
+    date_indices = []  # list of (index, date_iso)
+    timeseries_counts = {}  # date_iso -> Counter of outcomes
 
     if uploaded is not None:
         try:
-            # uploaded is a BytesIO-like object from Streamlit
-            raw_text = io.TextIOWrapper(uploaded, encoding="utf-8", errors="replace")
-            reader = csv.DictReader(raw_text)
-            csv_rows = list(reader)
+            raw = uploaded.getvalue().decode("utf-8", errors="replace")
+            rdr = csv.reader(io.StringIO(raw))
+            rows = list(rdr)
+            if not rows:
+                st.error("Uploaded CSV is empty")
+                return
+            csv_header = rows[0]
+            data_rows = rows[1:]
 
-            def _guess_status_from_row(row: dict) -> str:
-                # If there's an explicit Status/Result column, prefer that
-                for candidate in ("Status", "Result", "Test Result", "Outcome"):
-                    if candidate in row and row[candidate].strip():
-                        return row[candidate].strip()
-                # Otherwise, try to pick the right-most date-like / extra columns with Pass/Fail values
-                # Fall back to the last non-empty cell in the row
-                last = ""
-                for k in reader.fieldnames or []:
-                    val = (row.get(k) or "").strip()
-                    if val:
-                        last = val
-                return last
+            # helper to parse date-like header values
+            def _parse_date(h: str):
+                h = (h or "").strip()
+                if not h:
+                    return None
+                for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                    try:
+                        return datetime.strptime(h, fmt).date()
+                    except Exception:
+                        continue
+                # try numeric month/day without leading zeros like '6/1/2025'
+                try:
+                    parts = h.split("/")
+                    if len(parts) == 3:
+                        m, d, y = int(parts[0]), int(parts[1]), int(parts[2])
+                        return datetime(year=y, month=m, day=d).date()
+                except Exception:
+                    pass
+                return None
 
-            def _normalize_csv_row(r: dict) -> dict:
-                # map common CSV headers into the same keys the reports code expects
-                tcid_keys = [k for k in ("Test Case ID", "TestCaseID", "ID", "Test Case") if k in r]
-                tcid = (r[tcid_keys[0]].strip() if tcid_keys else "") if r else ""
-                module = (r.get("Module") or r.get("module") or "<Unknown>").strip()
-                tctype = (r.get("Test Case Type") or r.get("Test Case Type ") or r.get("TestCaseType") or "").strip()
-                summary = (r.get("Summary") or r.get("Test Description") or "").strip()
-                status = _guess_status_from_row(r)
-                return {
+            # detect date-like header columns (preserve duplicates)
+            for idx, h in enumerate(csv_header):
+                d = _parse_date(h)
+                if d is not None:
+                    date_iso = d.isoformat()
+                    date_indices.append((idx, date_iso))
+
+            # Build normalized records (map key names to values); also compute latest status per row
+            records = []
+            for row in data_rows:
+                # ensure row has same length as header
+                if len(row) < len(csv_header):
+                    # pad
+                    row = row + [""] * (len(csv_header) - len(row))
+                rec = {}
+                for i, h in enumerate(csv_header):
+                    rec[h] = row[i]
+
+                # normalize primary fields expected by charts
+                tcid = (rec.get("Test Case ID") or rec.get("TestCaseID") or rec.get("ID") or "").strip()
+                module = (rec.get("Module") or rec.get("module") or "").strip() or "<Unknown>"
+                tctype = (rec.get("Test Case Type") or rec.get("Test Case Type ") or rec.get("TestCaseType") or "").strip()
+
+                # determine latest status from date columns (right-to-left)
+                latest_status = ""
+                for idx, _iso in reversed(date_indices):
+                    v = (row[idx] or "").strip()
+                    if v:
+                        latest_status = v
+                        break
+
+                # fallback to common status columns
+                if not latest_status:
+                    for key in ("Status", "Result", "Actual Result", "Outcome"):
+                        if key in rec and rec[key].strip():
+                            latest_status = rec[key].strip()
+                            break
+
+                records.append({
                     "Test Case ID": tcid,
                     "Module": module,
                     "Test Case Type": tctype,
-                    "Status": status,
-                    "Summary": summary,
-                }
+                    "Status": latest_status,
+                    "_raw_row": rec,
+                })
 
-            records = [_normalize_csv_row(r) for r in csv_rows]
+            # Build timeseries counts grouped by date_iso (sum across duplicate date columns)
+            from collections import Counter
+
+            timeseries_counts = {}
+            if date_indices:
+                for idx, date_iso in date_indices:
+                    # for each date column, count pass/fail in that column
+                    c = Counter()
+                    for row in data_rows:
+                        # pad
+                        if len(row) <= idx:
+                            continue
+                        val = (row[idx] or "").strip().lower()
+                        if not val:
+                            continue
+                        if val.startswith("pass"):
+                            c["Pass"] += 1
+                        elif val.startswith("fail"):
+                            c["Fail"] += 1
+                        else:
+                            c["Other"] += 1
+                    # aggregate into date key
+                    if date_iso not in timeseries_counts:
+                        timeseries_counts[date_iso] = Counter()
+                    timeseries_counts[date_iso].update(c)
+
         except Exception as e:
             st.error(f"Failed to parse uploaded CSV: {e}")
             return
     else:
-        if not tc_file.exists():
-            st.info("No `Reports/test_cases.json` file found. Upload a CSV or generate test cases first.")
+        # no upload: read saved JSON test cases
+        if not testcases_file.exists():
+            st.info("No saved test cases found. Generate some from the Test Case Generation page first.")
             return
-
         try:
-            with tc_file.open("r", encoding="utf-8") as f:
-                raw = json.load(f)
+            with testcases_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
         except Exception as e:
-            st.error(f"Failed to read test_cases.json: {e}")
+            st.error(f"Failed to read test cases file: {e}")
             return
 
-        records = raw if isinstance(raw, list) else [raw]
-
-    # Build unique mapping by Test Case ID + Module.
-    # NOTE: Test Case IDs may be reused across modules (e.g. SG_1 for Login and SG_1 for SignUp).
-    # To ensure both are counted, use a composite key of (Test Case ID, Module). Records without
-    # a Test Case ID are also included using a synthetic key based on their index.
-    unique_by_id = {}
-    for idx, rec in enumerate(records):
-        if not isinstance(rec, dict):
-            continue
-        tcid = (rec.get("Test Case ID") or rec.get("TestCaseID") or "").strip()
-        module = (rec.get("Module") or "<Unknown>").strip()
-        if tcid:
-            key = f"{tcid}||{module}"
+        # normalize to records for existing JSON
+        if isinstance(data, dict):
+            records = [data]
+        elif isinstance(data, list):
+            records = data
         else:
-            # include records without Test Case ID using a stable synthetic key
-            key = f"__noid__{idx}||{module}"
-        if key not in unique_by_id:
-            unique_by_id[key] = rec
+            st.error("Unexpected data format in test_cases.json")
+            return
 
-    # If there are no Test Case IDs, inform the user
-    if not unique_by_id:
-        st.warning("No records contain a `Test Case ID`. Charts require Test Case IDs to compute unique counts.")
-        return
-
-    # Compute counters
-    type_counter = Counter()
-    status_counter = Counter()
-    module_counter = Counter()
-
-    for tcid, rec in unique_by_id.items():
-        t = (rec.get("Test Case Type") or "").strip()
-        if not t:
-            t = "Other"
-        type_counter[t] += 1
-
-        raw_status = rec.get("Status") or "Not Tested"
-        status = _normalize_status(raw_status)
-        status_counter[status] += 1
-
-        mod = (rec.get("Module") or "<Unknown>").strip()
-        module_counter[mod] += 1
-
-    total_unique = len(unique_by_id)
-    st.subheader("Totals")
-    c1, c2 = st.columns([1, 2])
-    c1.metric("Unique Test Case IDs", total_unique)
-    # show a compact module counts table so totals (Login/SignUp) are unambiguous
-    c2.markdown("**Module distribution**")
-    mod_rows = [{"Module": m, "Count": cnt} for m, cnt in module_counter.most_common()]
-    if mod_rows:
-        c2.table(mod_rows)
-    else:
-        c2.write("No module data")
-
-    st.markdown("\n---\n")
-
-    # Prepare data for charts
-    module_items = module_counter.most_common()
-
-    # Positive / Negative breakdown
-    pos = sum(v for k, v in type_counter.items() if k.lower().startswith("pos") or k.lower() == "positive")
-    neg = sum(v for k, v in type_counter.items() if k.lower().startswith("neg") or k.lower() == "negative")
-    other = sum(v for k, v in type_counter.items() if k.lower() not in ("positive", "negative", "pos", "neg"))
-    pn_data = []
-    if pos:
-        pn_data.append({"category": "Positive", "count": pos})
-    if neg:
-        pn_data.append({"category": "Negative", "count": neg})
-    if other:
-        pn_data.append({"category": "Other", "count": other})
-    if not pn_data:
-        for k, v in type_counter.items():
-            pn_data.append({"category": k, "count": v})
-
-    # Pass/Fail data
-    s_data = [{"status": k, "count": v} for k, v in status_counter.items()]
-
-    # Module bar data (use top N for readability)
-    top_n = 12
-    top_modules = module_items[:top_n]
-    mod_data = [{"module": m, "count": c} for m, c in top_modules]
-
-    # Layout: display 3 charts in a row (pies + module bar)
-    st.subheader("Overview")
-    col_a, col_b, col_c = st.columns([1, 1, 1], gap="medium")
-
-    with col_a:
-        st.markdown("**Positive vs Negative**")
-        if pn_data:
-            spec = {
-                "mark": {"type": "arc", "innerRadius": 20},
-                "encoding": {
-                    "theta": {"field": "count", "type": "quantitative"},
-                    "color": {"field": "category", "type": "nominal"},
-                    "tooltip": [{"field": "category"}, {"field": "count", "type": "quantitative"}],
-                },
-            }
-            st.vega_lite_chart(pn_data, spec, use_container_width=True)
-        else:
-            st.info("No Positive/Negative data available")
-
-    with col_b:
-        st.markdown("**Pass vs Fail**")
-        if s_data:
-            spec2 = {
-                "mark": {"type": "arc", "innerRadius": 20},
-                "encoding": {
-                    "theta": {"field": "count", "type": "quantitative"},
-                    "color": {"field": "status", "type": "nominal"},
-                    "tooltip": [{"field": "status"}, {"field": "count", "type": "quantitative"}],
-                },
-            }
-            st.vega_lite_chart(s_data, spec2, use_container_width=True)
-        else:
-            st.info("No pass/fail data available")
-
-    with col_c:
-        st.markdown("**Test cases per Module (top {})**".format(top_n))
-        if mod_data:
-            # horizontal bar for readability of long module names
-            spec3 = {
-                "mark": "bar",
-                "encoding": {
-                    "y": {"field": "module", "type": "nominal", "sort": "-x"},
-                    "x": {"field": "count", "type": "quantitative"},
-                    "tooltip": [{"field": "module"}, {"field": "count", "type": "quantitative"}],
-                },
-            }
-            st.vega_lite_chart(mod_data, spec3, use_container_width=True)
-        else:
-            st.info("No module data available")
-
-    st.markdown("\n---\n")
-
-    # Heatmap (bigger and full-width)
-    st.subheader("Heatmap: Module vs Status")
-    heat = []
-    statuses_list = list(status_counter.keys())
-    for m, _cnt in module_items:
-        for s in statuses_list:
-            cnt = 0
-            for rec in unique_by_id.values():
-                if (rec.get("Module") or "").strip() == m and _normalize_status(rec.get("Status") or "Not Tested") == s:
-                    cnt += 1
-            if cnt:
-                heat.append({"module": m, "status": s, "count": cnt})
-
-    if heat:
-        spec_heat = {
-            "height": 480,
-            "mark": "rect",
-            "encoding": {
-                "x": {"field": "module", "type": "nominal", "axis": {"labelAngle": -45}},
-                "y": {"field": "status", "type": "nominal"},
-                "color": {"field": "count", "type": "quantitative"},
-                "tooltip": [{"field": "module"}, {"field": "status"}, {"field": "count", "type": "quantitative"}],
-            },
-        }
-        st.vega_lite_chart(heat, spec_heat, use_container_width=True)
-    else:
-        st.info("No heatmap data available")
-
-    # Pass/Fail over time
-    # Detect date-like columns in uploaded CSV (reader.fieldnames) or JSON records keys.
-    def _looks_like_date(s: str) -> bool:
-        if not s or not isinstance(s, str):
-            return False
-        s = s.strip()
-        # quick regex for common numeric date formats like 6/1/2025 or 2025-06-01
-        if re.match(r"^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$", s):
-            # attempt to parse to be more confident
-            for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%y"):
-                try:
-                    datetime.strptime(s, fmt)
-                    return True
-                except Exception:
-                    continue
-        return False
-
-    def _parse_date(s: str) -> datetime:
-        for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%y"):
-            try:
-                return datetime.strptime(s, fmt)
-            except Exception:
-                continue
-        # fallback: try dateutil parser if available, else raise
-        raise ValueError(f"Unrecognized date format: {s}")
-
-    date_fields = []
-    csv_rows_local = None
-    # If uploaded was used earlier, csv_rows variable exists in scope and reader.fieldnames too
+    # At this point `records` should be defined (from CSV upload branch or JSON branch)
     try:
-        if uploaded is not None:
-            # reader was used to parse CSV earlier; attempt to re-read uploaded for fieldnames if needed
-            # but we preserved csv_rows in that branch; try to access it
-            csv_rows_local = csv_rows  # noqa: F821
-            fieldnames = (reader.fieldnames if 'reader' in locals() else None) or []
-            date_fields = [f for f in (fieldnames or []) if _looks_like_date(f)]
-        else:
-            # check JSON records keys
-            keys = set()
-            for r in records:
-                if isinstance(r, dict):
-                    keys.update(r.keys())
-            date_fields = [k for k in keys if _looks_like_date(k)]
+        import pandas as pd
     except Exception:
-        date_fields = []
+        pd = None
 
-    if date_fields:
-        # Build time series counts for Pass/Fail per date field
-        ts_counts = []
-        # choose data source: csv_rows_local preferred (gives per-date columns), else records
-        source_rows = csv_rows_local if csv_rows_local is not None else records
-        for df in date_fields:
-            pass_cnt = 0
-            fail_cnt = 0
-            for r in source_rows:
-                try:
-                    # when source is csv rows, r is dict with that column; for JSON, r[df] may exist
-                    val = (r.get(df) if isinstance(r, dict) else None) or ""
-                except Exception:
-                    val = ""
-                norm = _normalize_status(val)
-                if norm == "Pass":
-                    pass_cnt += 1
-                elif norm == "Fail":
-                    fail_cnt += 1
-            # parse df into ISO string for x-axis ordering
-            try:
-                parsed = _parse_date(df)
-                date_iso = parsed.strftime("%Y-%m-%d")
-            except Exception:
-                date_iso = df
-            ts_counts.append({"date": date_iso, "Pass": pass_cnt, "Fail": fail_cnt})
+    # Basic fields extraction (safe)
+    def get_field(rec, key):
+        return rec.get(key) if isinstance(rec, dict) else None
 
-        # Sort by date when possible
-        try:
-            ts_counts.sort(key=lambda x: datetime.strptime(x["date"], "%Y-%m-%d"))
-        except Exception:
-            pass
+    modules = [get_field(r, "Module") or "<Unknown>" for r in records]
+    statuses = [get_field(r, "Status") or "<Unknown>" for r in records]
+    types = [get_field(r, "Test Case Type") or "<Unknown>" for r in records]
 
-        # Convert to long form for Vega-Lite
-        ts_long = []
-        for row in ts_counts:
-            ts_long.append({"date": row["date"], "result": "Pass", "count": row["Pass"]})
-            ts_long.append({"date": row["date"], "result": "Fail", "count": row["Fail"]})
+    total = len(records)
 
-        st.markdown("\n---\n")
-        st.subheader("Pass/Fail over time")
-        if any(r["count"] for r in ts_long):
-            spec_time = {
+    st.subheader("Summary")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total test cases", total)
+    # top module
+    try:
+        from collections import Counter
+
+        top_module, top_module_count = Counter(modules).most_common(1)[0]
+    except Exception:
+        top_module, top_module_count = "-", 0
+    col2.metric("Top module", f"{top_module} ({top_module_count})")
+    try:
+        top_status, top_status_count = Counter(statuses).most_common(1)[0]
+    except Exception:
+        top_status, top_status_count = "-", 0
+    col3.metric("Top status", f"{top_status} ({top_status_count})")
+
+    st.markdown("---")
+
+    # Filters
+    st.sidebar.header("Filters")
+    unique_modules = sorted({m for m in modules if m is not None})
+    selected_modules = st.sidebar.multiselect("Module", unique_modules, default=unique_modules)
+    unique_status = sorted({s for s in statuses if s is not None})
+    selected_status = st.sidebar.multiselect("Status", unique_status, default=unique_status)
+    unique_types = sorted({t for t in types if t is not None})
+    selected_types = st.sidebar.multiselect("Test Case Type", unique_types, default=unique_types)
+
+    # Apply filters
+    def record_matches(r):
+        m = get_field(r, "Module") or "<Unknown>"
+        s = get_field(r, "Status") or "<Unknown>"
+        t = get_field(r, "Test Case Type") or "<Unknown>"
+        return (m in selected_modules) and (s in selected_status) and (t in selected_types)
+
+    filtered = [r for r in records if record_matches(r)]
+
+    st.subheader("Charts")
+    # Time-series: Pass/Fail over date columns (only when CSV upload with date columns is used)
+    if timeseries_counts:
+        # build a flat list for Vega-Lite: [{date: '2025-06-01', outcome: 'Pass', count: 12}, ...]
+        ts_rows = []
+        for date_iso in sorted(timeseries_counts.keys()):
+            ctr = timeseries_counts[date_iso]
+            for outcome, cnt in ctr.items():
+                ts_rows.append({"date": date_iso, "outcome": outcome, "count": int(cnt)})
+
+        if ts_rows:
+            st.markdown("**Pass / Fail over time**")
+            spec_ts = {
                 "mark": {"type": "line", "point": True},
                 "encoding": {
-                    "x": {"field": "date", "type": "temporal"},
-                    "y": {"field": "count", "type": "quantitative"},
-                    "color": {"field": "result", "type": "nominal"},
-                    "tooltip": [{"field": "date"}, {"field": "result"}, {"field": "count", "type": "quantitative"}],
+                    "x": {"field": "date", "type": "temporal", "title": "Date"},
+                    "y": {"field": "count", "type": "quantitative", "title": "Count"},
+                    "color": {"field": "outcome", "type": "nominal"},
+                    "tooltip": [
+                        {"field": "date", "type": "temporal"},
+                        {"field": "outcome", "type": "nominal"},
+                        {"field": "count", "type": "quantitative"},
+                    ],
                 },
             }
-            st.vega_lite_chart(ts_long, spec_time, use_container_width=True)
-        else:
-            st.info("Date columns detected but no Pass/Fail values found for those dates.")
-    else:
-        # No date columns detected; do nothing (user requested to remove graph if not present)
-        pass
+            try:
+                st.vega_lite_chart(ts_rows, spec_ts, use_container_width=True)
+            except Exception:
+                # degrade gracefully
+                st.write({d: dict(timeseries_counts[d]) for d in sorted(timeseries_counts.keys())})
+        # Show two pies side-by-side: Test Case Type distribution and latest-date Pass/Fail
+        try:
+            from collections import Counter
 
-    # End: removed raw counts display per user request
+            # type counts from filtered records
+            type_ctr = Counter([get_field(r, "Test Case Type") or "<Unknown>" for r in filtered])
+            type_data = [{"type": k, "count": int(v)} for k, v in type_ctr.items()]
+
+            latest_date = None
+            latest_counts = None
+            if timeseries_counts:
+                latest_date = max(timeseries_counts.keys())
+                latest_counts = timeseries_counts.get(latest_date, {})
+            latest_data = []
+            if latest_counts:
+                for k in ("Pass", "Fail", "Other"):
+                    if latest_counts.get(k):
+                        latest_data.append({"outcome": k, "count": int(latest_counts.get(k))})
+
+            col_left, col_right = st.columns(2)
+            with col_left:
+                st.markdown("**Test Case Type**")
+                if type_data:
+                    spec_type = {
+                        "mark": {"type": "arc", "innerRadius": 20},
+                        "encoding": {
+                            "theta": {"field": "count", "type": "quantitative"},
+                            "color": {"field": "type", "type": "nominal"},
+                            "tooltip": [{"field": "type"}, {"field": "count", "type": "quantitative"}],
+                        },
+                    }
+                    st.vega_lite_chart(type_data, spec_type, use_container_width=True)
+                else:
+                    st.write("No Test Case Type data")
+
+            with col_right:
+                if latest_date and latest_data:
+                    st.markdown(f"**Pass/Fail (latest date: {latest_date})**")
+                    spec_latest = {
+                        "mark": {"type": "arc", "innerRadius": 20},
+                        "encoding": {
+                            "theta": {"field": "count", "type": "quantitative"},
+                            "color": {"field": "outcome", "type": "nominal"},
+                            "tooltip": [{"field": "outcome"}, {"field": "count", "type": "quantitative"}],
+                        },
+                    }
+                    st.vega_lite_chart(latest_data, spec_latest, use_container_width=True)
+                else:
+                    st.write("No date-based Pass/Fail data detected")
+        except Exception:
+            # if anything fails, continue without blocking charts below
+            pass
+    if pd is not None:
+        df = pd.DataFrame(filtered)
+        if df.empty:
+            st.info("No test cases match the selected filters.")
+        else:
+            # Counts by Module
+            module_counts = df["Module"].fillna("<Unknown>").value_counts()
+            st.markdown("**Test cases by Module**")
+            st.bar_chart(module_counts)
+
+            # Counts by Status
+            status_counts = df["Status"].fillna("<Unknown>").value_counts()
+            st.markdown("**Test cases by Status**")
+            st.bar_chart(status_counts)
+
+            # Counts by Test Case Type
+            type_counts = df["Test Case Type"].fillna("<Unknown>").value_counts()
+            st.markdown("**Test cases by Type**")
+
+            # Test Case Type pie is shown above (if available)
+
+            st.markdown("---")
+            st.subheader("Filtered test cases")
+            st.dataframe(df)
+    else:
+        # Fallback: simple aggregations without pandas
+        if len(filtered) == 0:
+            st.info("No test cases match the selected filters.")
+        else:
+            from collections import Counter
+
+            st.markdown("**Test cases by Module**")
+            mc = Counter([get_field(r, "Module") or "<Unknown>" for r in filtered])
+            st.write(dict(mc))
+            st.markdown("**Test cases by Status**")
+            sc = Counter([get_field(r, "Status") or "<Unknown>" for r in filtered])
+            st.write(dict(sc))
+            # Test Case Type pie is shown above (if available)
+
+            st.markdown("---")
+            st.subheader("Filtered test cases")
+            st.write(filtered)
+
+    # Download filtered results as CSV
+    st.markdown("---")
+    st.subheader("Export")
+    try:
+        if pd is not None and not pd.DataFrame(filtered).empty:
+            csv_bytes = pd.DataFrame(filtered).to_csv(index=False).encode("utf-8")
+        else:
+            # Fallback CSV generation
+            if len(filtered) == 0:
+                csv_bytes = "".encode("utf-8")
+            else:
+                # collect headers
+                headers = set()
+                for r in filtered:
+                    if isinstance(r, dict):
+                        headers.update(r.keys())
+                headers = list(headers)
+                output = io.StringIO()
+                writer = csv.DictWriter(output, fieldnames=headers)
+                writer.writeheader()
+                for r in filtered:
+                    writer.writerow({k: (r.get(k, "") if isinstance(r, dict) else "") for k in headers})
+                csv_bytes = output.getvalue().encode("utf-8")
+
+        st.download_button("Download filtered CSV", data=csv_bytes, file_name="test_cases_filtered.csv", mime="text/csv")
+    except Exception as e:
+        st.warning(f"Could not prepare CSV export: {e}")
