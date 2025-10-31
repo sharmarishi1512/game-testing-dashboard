@@ -13,19 +13,6 @@ from pathlib import Path
 
 WEBHOOK_URL = "https://natasha1.app.n8n.cloud/webhook/f6d8b7ed-cf2f-48d1-adb4-fe7a78694981"
 
-def safe_rerun():
-    """
-    Call Streamlit's rerun function if available; different streamlit versions
-    expose this API under different names (experimental_rerun or rerun).
-    This wrapper avoids static typing errors and safely ignores failures.
-    """
-    rerun = getattr(st, "experimental_rerun", None) or getattr(st, "rerun", None)
-    if callable(rerun):
-        try:
-            rerun()
-        except Exception:
-            pass
-
 
 def render():
     """Render the Test Case Generation page with a form that submits to an n8n webhook."""
@@ -36,6 +23,13 @@ def render():
 
     resp_text = None
     resp_data = None
+    # initialize form variables so they always exist even if form isn't rendered for some reason
+    os_field = ""
+    ticket_id = ""
+    module = ""
+    summary = ""
+    ac = ""
+    dropdown = ""
 
     # Display stored test cases (read from Reports/test_cases.json) in the right column.
     with right_col:
@@ -73,7 +67,7 @@ def render():
                         import io, csv
 
                         output = io.StringIO()
-                        # If list of dicts, compute headers and write CSV
+                        # If list of dicts, compute headers
                         if isinstance(stored_data, list) and len(stored_data) > 0 and isinstance(stored_data[0], dict):
                             headers = list({k for row in stored_data for k in (row.keys() if isinstance(row, dict) else [])})
                             writer = csv.DictWriter(output, fieldnames=headers)
@@ -95,7 +89,7 @@ def render():
 
                     # Manual refresh button
                     if st.button("Refresh test cases"):
-                        safe_rerun()
+                        st.experimental_rerun()
             else:
                 st.info("No saved test cases yet.")
         except Exception as e:
@@ -104,12 +98,11 @@ def render():
     with left_col:
         with st.form("tc_form"):
             os_field = st.text_input("OS")
-            # sheet = st.text_input("Sheet")
             ticket_id = st.text_input("Ticket ID")
             module = st.text_input("Module")
             summary = st.text_input("Summary")
             ac = st.text_area("Acceptance Criteria")
-            # desc = st.text_area("Description")
+            # description field removed per request
             # Type: show choices as radio buttons so both options are visible immediately
             type_choices = {"Test Case": "tc", "Test Scenario": "ts"}
             selection_label = st.radio("Type", list(type_choices.keys()))
@@ -120,12 +113,10 @@ def render():
     if submitted:
         payload = {
             "os": os_field,
-            "sheet": sheet,
             "ticketId": ticket_id,
             "module": module,
             "summary": summary,
             "ac": ac,
-            "desc": desc,
             "dropdown": dropdown,
         }
 
@@ -232,39 +223,25 @@ def render():
                     try:
                         import re
 
-                        prefix_counts = {}
+                        prefixes = {}
                         for item in existing:
-                            if not isinstance(item, dict):
-                                continue
-                            tcid = item.get("Test Case ID") or item.get("TestCaseID")
-                            if not isinstance(tcid, str):
-                                continue
-                            s = tcid.strip()
-                            # match a trailing number, capture prefix and number
-                            m = re.match(r"^(.*?)(?:[_\-\s])?(\d+)\s*$", s)
-                            if m:
-                                # remove trailing separators (underscore, space, hyphen) and strip whitespace
-                                ppart = (m.group(1) or "").rstrip(" _-").strip()
-                                try:
-                                    n = int(m.group(2))
-                                except Exception:
-                                    continue
-                                if ppart == "":
-                                    # fallback prefix when none found
-                                    ppart = "SG"
-                                prefix_counts[ppart] = prefix_counts.get(ppart, 0) + 1
-                                if n > max_num:
-                                    max_num = n
+                            if isinstance(item, dict):
+                                tcid = item.get("Test Case ID") or item.get("TestCaseID")
+                                if isinstance(tcid, str):
+                                    m = re.match(r"([^_]+)_?(\d+)$", tcid)
+                                    if m:
+                                        p = m.group(1)
+                                        n = int(m.group(2))
+                                        prefixes[p] = prefixes.get(p, 0) + 1
+                                        if n > max_num:
+                                            max_num = n
 
-                        # pick the most common prefix if any, else default to 'SG' or 'TC'
-                        if prefix_counts:
-                            prefix = max(prefix_counts.items(), key=lambda kv: kv[1])[0]
+                        # pick the most common prefix if any, else default to 'SG' if present, otherwise 'TC'
+                        if prefixes:
+                            # most common prefix
+                            prefix = max(prefixes.items(), key=lambda kv: kv[1])[0]
                         else:
-                            # fallback: look for explicit SG_ occurrences
-                            if any(isinstance(item, dict) and isinstance(item.get("Test Case ID"), str) and item.get("Test Case ID").strip().startswith("SG") for item in existing):
-                                prefix = "SG"
-                            else:
-                                prefix = "TC"
+                            prefix = "SG" if any("SG_" in (str(item.get("Test Case ID")) if isinstance(item, dict) else "" for item in existing) ) else "TC"
                     except Exception:
                         prefix = "TC"
 
@@ -281,9 +258,39 @@ def render():
                     except Exception:
                         pass
 
-                    # Append-only behavior: simply concatenate existing records with new entries.
-                    # The user requested to append all new test cases without deduplication.
                     combined = existing + new_entries
+
+                    # Basic dedupe by `ticketId` or `Test Case ID` when available (keep first occurrence)
+                    try:
+                        seen_ticket = set()
+                        seen_tcid = set()
+                        deduped = []
+                        for item in combined:
+                            if not isinstance(item, dict):
+                                deduped.append(item)
+                                continue
+
+                            ticket = item.get("ticketId")
+                            tcid = item.get("Test Case ID")
+
+                            # if ticketId present and seen, skip
+                            if ticket is not None:
+                                if ticket in seen_ticket:
+                                    continue
+                                seen_ticket.add(ticket)
+
+                            # if Test Case ID present and seen, skip
+                            if tcid is not None:
+                                if tcid in seen_tcid:
+                                    continue
+                                seen_tcid.add(tcid)
+
+                            deduped.append(item)
+
+                        combined = deduped
+                    except Exception:
+                        # If dedupe fails for any reason, just keep combined as-is
+                        pass
 
                     # Atomic write: write to a temp file then replace
                     with tempfile.NamedTemporaryFile("w", delete=False, dir=str(reports_dir), encoding="utf-8") as tf:
@@ -291,12 +298,6 @@ def render():
                         tempname = tf.name
                     os.replace(tempname, str(target))
                     st.info(f"Saved webhook response to: {target}")
-                    # Refresh the page so the Saved Test Cases table reloads with the new data
-                    try:
-                        safe_rerun()
-                    except Exception:
-                        # If rerun isn't allowed in this context, it's non-fatal — the user can press Refresh.
-                        pass
                 except Exception as e:
                     st.warning(f"Could not save webhook response to disk: {e}")
 
