@@ -89,7 +89,15 @@ def render():
 
                     # Manual refresh button
                     if st.button("Refresh test cases"):
-                        st.experimental_rerun()
+                        # Some streamlit builds/type checkers may not expose experimental_rerun;
+                        # call it only if available, otherwise show a message prompting manual refresh.
+                        if hasattr(st, "experimental_rerun") and callable(getattr(st, "experimental_rerun")):
+                            try:
+                                st.experimental_rerun()
+                            except Exception:
+                                st.info("Please refresh the page to reload test cases.")
+                        else:
+                            st.info("Please refresh the page to reload test cases.")
             else:
                 st.info("No saved test cases yet.")
         except Exception as e:
@@ -185,7 +193,6 @@ def render():
 
             # Show a success message (toast-like)
             st.success("Submission successful.")
-            st.balloons()
 
             # Persist JSON responses so other pages can use them.
             # We only persist when we successfully parsed JSON into resp_data.

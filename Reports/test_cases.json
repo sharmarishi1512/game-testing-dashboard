@@ -562,5 +562,41 @@
     "Test Case Type": "Negative",
     "Environment": "Test",
     "Status": "Not Tested"
+  },
+  {
+    "Test Case ID": "SG_48",
+    "Module": "Login",
+    "Submodule": "Email Input",
+    "Summary": "Verify the email input field validates for blank values.",
+    "Test Steps": "1. Navigate to the login page.\n2. Enter a blank value in the email field.\n3. Attempt to submit the form.",
+    "Expected Results": "An error message should be displayed, indicating that the email field cannot be blank.",
+    "Actual Result": "",
+    "Test Case Type": "Negative",
+    "Environment": "Test",
+    "Status": "Not Tested"
+  },
+  {
+    "Test Case ID": "SG_49",
+    "Module": "Login",
+    "Submodule": "Password Input",
+    "Summary": "Verify password input field accepts password having special characters",
+    "Test Steps": "1. Go to Login page\n2. Enter a password having special characters\n3. Click on Login",
+    "Expected Results": "Application should accept the password",
+    "Actual Result": "",
+    "Test Case Type": "Positive",
+    "Environment": "Test",
+    "Status": "Not Tested"
+  },
+  {
+    "Test Case ID": "SG_50",
+    "Module": "Login",
+    "Submodule": "Password Input",
+    "Summary": "Verify login attempt with email and password exceeding maximum character length",
+    "Test Steps": "1. Navigate to the login page.\n2. Enter email and password with exceeding max character length.\n3. Complete CAPTCHA if required.\n4. Click 'Login'.",
+    "Expected Results": "An error message should be displayed indicating that email and password exceeding max character length",
+    "Actual Result": "",
+    "Test Case Type": "Negative",
+    "Environment": "Test",
+    "Status": "Not Tested"
   }
 ]
