@@ -31,77 +31,21 @@ def render():
     ac = ""
     dropdown = ""
 
-    # Display stored test cases (read from Reports/test_cases.json) in the right column.
+    # Right column reserved for API response table (not the saved test_cases.json)
     with right_col:
-        st.subheader("Saved Test Cases")
-        try:
-            repo_root = Path(__file__).resolve().parents[1]
-            stored = repo_root / "Reports" / "test_cases.json"
-            if stored.exists():
-                try:
-                    with stored.open("r", encoding="utf-8") as f:
-                        stored_data = json.load(f)
-                except Exception as e:
-                    st.warning(f"Failed to read saved test cases: {e}")
-                    stored_data = None
-
-                if stored_data is None:
-                    st.info("No saved test cases or file unreadable.")
+        st.subheader("API response")
+        if resp_data is None:
+            st.info("No API response yet. Submit the form to see the webhook response here.")
+        else:
+            try:
+                if isinstance(resp_data, list):
+                    st.dataframe(resp_data)
+                elif isinstance(resp_data, dict):
+                    st.dataframe([resp_data])
                 else:
-                    # Prefer to show as a table if it's a list of records
-                    if isinstance(stored_data, list):
-                        try:
-                            st.dataframe(stored_data)
-                        except Exception:
-                            st.json(stored_data)
-                    elif isinstance(stored_data, dict):
-                        try:
-                            st.dataframe([stored_data])
-                        except Exception:
-                            st.json(stored_data)
-                    else:
-                        st.json(stored_data)
-
-                    # Download button for convenience
-                    try:
-                        import io, csv
-
-                        output = io.StringIO()
-                        # If list of dicts, compute headers
-                        if isinstance(stored_data, list) and len(stored_data) > 0 and isinstance(stored_data[0], dict):
-                            headers = list({k for row in stored_data for k in (row.keys() if isinstance(row, dict) else [])})
-                            writer = csv.DictWriter(output, fieldnames=headers)
-                            writer.writeheader()
-                            for row in stored_data:
-                                writer.writerow({k: (row.get(k, "") if isinstance(row, dict) else "") for k in headers})
-                        elif isinstance(stored_data, dict):
-                            headers = list(stored_data.keys())
-                            writer = csv.DictWriter(output, fieldnames=headers)
-                            writer.writeheader()
-                            writer.writerow({k: stored_data.get(k, "") for k in headers})
-                        else:
-                            output.write(json.dumps(stored_data, ensure_ascii=False))
-
-                        csv_bytes = output.getvalue().encode("utf-8")
-                        st.download_button("Download saved test cases (CSV/JSON)", data=csv_bytes, file_name="test_cases.csv", mime="text/csv")
-                    except Exception:
-                        pass
-
-                    # Manual refresh button
-                    if st.button("Refresh test cases"):
-                        # Some streamlit builds/type checkers may not expose experimental_rerun;
-                        # call it only if available, otherwise show a message prompting manual refresh.
-                        if hasattr(st, "experimental_rerun") and callable(getattr(st, "experimental_rerun")):
-                            try:
-                                st.experimental_rerun()
-                            except Exception:
-                                st.info("Please refresh the page to reload test cases.")
-                        else:
-                            st.info("Please refresh the page to reload test cases.")
-            else:
-                st.info("No saved test cases yet.")
-        except Exception as e:
-            st.warning(f"Error while loading saved test cases: {e}")
+                    st.code(json.dumps(resp_data, ensure_ascii=False))
+            except Exception:
+                st.write(resp_data)
 
     with left_col:
         with st.form("tc_form"):

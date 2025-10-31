@@ -1,4 +1,8 @@
+import csv
+import io
 import json
+import re
+from datetime import datetime
 from pathlib import Path
 from collections import Counter
 import streamlit as st
@@ -30,18 +34,65 @@ def render():
 
     repo_root = Path(__file__).resolve().parents[1]
     tc_file = repo_root / "Reports" / "test_cases.json"
-    if not tc_file.exists():
-        st.info("No `Reports/test_cases.json` file found. Generate test cases first.")
-        return
 
-    try:
-        with tc_file.open("r", encoding="utf-8") as f:
-            raw = json.load(f)
-    except Exception as e:
-        st.error(f"Failed to read test_cases.json: {e}")
-        return
+    # Allow the user to upload a CSV. If provided, use it as the source of records
+    uploaded = st.file_uploader("Upload CSV to generate report (optional)", type=["csv"], help="Upload a CSV in the same format as 'Final Report - Test Cases format.csv'. If not provided, the page will read Reports/test_cases.json.")
+    records = None
 
-    records = raw if isinstance(raw, list) else [raw]
+    if uploaded is not None:
+        try:
+            # uploaded is a BytesIO-like object from Streamlit
+            raw_text = io.TextIOWrapper(uploaded, encoding="utf-8", errors="replace")
+            reader = csv.DictReader(raw_text)
+            csv_rows = list(reader)
+
+            def _guess_status_from_row(row: dict) -> str:
+                # If there's an explicit Status/Result column, prefer that
+                for candidate in ("Status", "Result", "Test Result", "Outcome"):
+                    if candidate in row and row[candidate].strip():
+                        return row[candidate].strip()
+                # Otherwise, try to pick the right-most date-like / extra columns with Pass/Fail values
+                # Fall back to the last non-empty cell in the row
+                last = ""
+                for k in reader.fieldnames or []:
+                    val = (row.get(k) or "").strip()
+                    if val:
+                        last = val
+                return last
+
+            def _normalize_csv_row(r: dict) -> dict:
+                # map common CSV headers into the same keys the reports code expects
+                tcid_keys = [k for k in ("Test Case ID", "TestCaseID", "ID", "Test Case") if k in r]
+                tcid = (r[tcid_keys[0]].strip() if tcid_keys else "") if r else ""
+                module = (r.get("Module") or r.get("module") or "<Unknown>").strip()
+                tctype = (r.get("Test Case Type") or r.get("Test Case Type ") or r.get("TestCaseType") or "").strip()
+                summary = (r.get("Summary") or r.get("Test Description") or "").strip()
+                status = _guess_status_from_row(r)
+                return {
+                    "Test Case ID": tcid,
+                    "Module": module,
+                    "Test Case Type": tctype,
+                    "Status": status,
+                    "Summary": summary,
+                }
+
+            records = [_normalize_csv_row(r) for r in csv_rows]
+        except Exception as e:
+            st.error(f"Failed to parse uploaded CSV: {e}")
+            return
+    else:
+        if not tc_file.exists():
+            st.info("No `Reports/test_cases.json` file found. Upload a CSV or generate test cases first.")
+            return
+
+        try:
+            with tc_file.open("r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except Exception as e:
+            st.error(f"Failed to read test_cases.json: {e}")
+            return
+
+        records = raw if isinstance(raw, list) else [raw]
 
     # Build unique mapping by Test Case ID + Module.
     # NOTE: Test Case IDs may be reused across modules (e.g. SG_1 for Login and SG_1 for SignUp).
@@ -203,5 +254,109 @@ def render():
         st.vega_lite_chart(heat, spec_heat, use_container_width=True)
     else:
         st.info("No heatmap data available")
+
+    # Pass/Fail over time
+    # Detect date-like columns in uploaded CSV (reader.fieldnames) or JSON records keys.
+    def _looks_like_date(s: str) -> bool:
+        if not s or not isinstance(s, str):
+            return False
+        s = s.strip()
+        # quick regex for common numeric date formats like 6/1/2025 or 2025-06-01
+        if re.match(r"^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$", s):
+            # attempt to parse to be more confident
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%y"):
+                try:
+                    datetime.strptime(s, fmt)
+                    return True
+                except Exception:
+                    continue
+        return False
+
+    def _parse_date(s: str) -> datetime:
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%y"):
+            try:
+                return datetime.strptime(s, fmt)
+            except Exception:
+                continue
+        # fallback: try dateutil parser if available, else raise
+        raise ValueError(f"Unrecognized date format: {s}")
+
+    date_fields = []
+    csv_rows_local = None
+    # If uploaded was used earlier, csv_rows variable exists in scope and reader.fieldnames too
+    try:
+        if uploaded is not None:
+            # reader was used to parse CSV earlier; attempt to re-read uploaded for fieldnames if needed
+            # but we preserved csv_rows in that branch; try to access it
+            csv_rows_local = csv_rows  # noqa: F821
+            fieldnames = (reader.fieldnames if 'reader' in locals() else None) or []
+            date_fields = [f for f in (fieldnames or []) if _looks_like_date(f)]
+        else:
+            # check JSON records keys
+            keys = set()
+            for r in records:
+                if isinstance(r, dict):
+                    keys.update(r.keys())
+            date_fields = [k for k in keys if _looks_like_date(k)]
+    except Exception:
+        date_fields = []
+
+    if date_fields:
+        # Build time series counts for Pass/Fail per date field
+        ts_counts = []
+        # choose data source: csv_rows_local preferred (gives per-date columns), else records
+        source_rows = csv_rows_local if csv_rows_local is not None else records
+        for df in date_fields:
+            pass_cnt = 0
+            fail_cnt = 0
+            for r in source_rows:
+                try:
+                    # when source is csv rows, r is dict with that column; for JSON, r[df] may exist
+                    val = (r.get(df) if isinstance(r, dict) else None) or ""
+                except Exception:
+                    val = ""
+                norm = _normalize_status(val)
+                if norm == "Pass":
+                    pass_cnt += 1
+                elif norm == "Fail":
+                    fail_cnt += 1
+            # parse df into ISO string for x-axis ordering
+            try:
+                parsed = _parse_date(df)
+                date_iso = parsed.strftime("%Y-%m-%d")
+            except Exception:
+                date_iso = df
+            ts_counts.append({"date": date_iso, "Pass": pass_cnt, "Fail": fail_cnt})
+
+        # Sort by date when possible
+        try:
+            ts_counts.sort(key=lambda x: datetime.strptime(x["date"], "%Y-%m-%d"))
+        except Exception:
+            pass
+
+        # Convert to long form for Vega-Lite
+        ts_long = []
+        for row in ts_counts:
+            ts_long.append({"date": row["date"], "result": "Pass", "count": row["Pass"]})
+            ts_long.append({"date": row["date"], "result": "Fail", "count": row["Fail"]})
+
+        st.markdown("\n---\n")
+        st.subheader("Pass/Fail over time")
+        if any(r["count"] for r in ts_long):
+            spec_time = {
+                "mark": {"type": "line", "point": True},
+                "encoding": {
+                    "x": {"field": "date", "type": "temporal"},
+                    "y": {"field": "count", "type": "quantitative"},
+                    "color": {"field": "result", "type": "nominal"},
+                    "tooltip": [{"field": "date"}, {"field": "result"}, {"field": "count", "type": "quantitative"}],
+                },
+            }
+            st.vega_lite_chart(ts_long, spec_time, use_container_width=True)
+        else:
+            st.info("Date columns detected but no Pass/Fail values found for those dates.")
+    else:
+        # No date columns detected; do nothing (user requested to remove graph if not present)
+        pass
 
     # End: removed raw counts display per user request
