@@ -1,0 +1,349 @@
+Test Case ID,Module,Submodule,Summary,Test Steps,Expected Results,Actual Result,Test Case Type,Environment,6/1/2025,7/1/2025,7/1/2025,9/1/2025
+SG_1,Login Page,-,Verify the login page displays a split-screen layout.,"1. Navigate to the login page.
+2. Observe the page layout.",The page should display a split-screen layout.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_2,Login Page,-,Verify login page does not load correctly when browser zoom is set beyond supported levels.,"1. Navigate to the login page.
+2. Increase Browser Zoom to 300%.
+3. Observe the page layout.",Login Page layout must be distorted or cutoff.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_3,Login Page,Motivational Image,Verify the left side of the login page displays the correct motivational image and text.,"1. Navigate to the login page.
+2. Check the left side of the screen.",The left side should display a motivational image and the text “A Positive Change Starts Now.”,,Positive,Test,Pass,Pass,Pass,Pass
+SG_4,Login Page,Motivational Image,Verify the motivational image does not load or displays a broken image icon when the image source is invalid.,"1. Navigate to the login page with an invalid image source.
+2. Check the left side of the screen.",The left side should not load the image or show as broken image icon.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_5,Login Page,Login Form,Verify the right side of the login page displays the login form correctly.,"1. Navigate to the login page.
+2. Check the right side of the screen.","The right side should display fields for email and password, a CAPTCHA puzzle, and buttons for login and Google sign-in.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_6,Login Page,Login Form,Verify login form is not present in the DOM when it is hidden.,"1. Navigate to the login page.
+2. Check the DOM, search for login form by id or class.","The login form should not be found, or throw error while accessing.",,Negative,Test,Pass,Pass,Pass,Pass
+SG_7,Login Page,Email Input,Verify the email input field validates the email format.,"1. Enter an invalid email format (e.g., 'test') in the email field.
+2. Attempt to submit the form.",An error message should be displayed indicating the email format is invalid.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_8,Login Page,Email Input,Verify the email input field accepts a valid email format.,"1. Enter a valid email format (e.g., 'test@example.com') in the email field.
+2. Proceed to the next field.",The email field should accept the input without any validation errors.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_9,Login Page,Password Input,Verify the password input field displays a visibility toggle.,"1. Navigate to the login page.
+2. Check the password input field.",A visibility toggle icon should be present in the password field.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_10,Login Page,Password Input,Verify the password input field hides the password when the visibility toggle is in the hidden state.,"1. Navigate to the login page.
+2. Enter a password in the password field.
+3. Ensure the visibility toggle is in the hidden state.",The password should be masked with dots or asterisks.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_11,Login Page,Password Input,Verify the password input field shows the password when the visibility toggle is in the visible state.,"1. Navigate to the login page.
+2. Enter a password in the password field.
+3. Click the visibility toggle to the visible state.",The password should be displayed in plain text.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_12,Login Page,Password Input,Verify the password field does not accept null values.,"1. Enter null in the password field.
+2. Attempt to submit the form.",The system should display an error message indicating that the password cannot be null.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_13,Login Page,CAPTCHA Slider,Verify the CAPTCHA slider is displayed on the login page.,"1. Navigate to the login page.
+2. Check for the CAPTCHA slider.",The CAPTCHA slider should be present on the page.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_14,Login Page,CAPTCHA Slider,Verify the login button remains disabled until CAPTCHA is successfully completed.,"1. Navigate to the login page.
+2. Observe the state of the login button.",The login button should be disabled.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_15,Login Page,CAPTCHA Slider,Verify the login button is enabled after CAPTCHA is successfully completed.,"1. Navigate to the login page.
+2. Complete the CAPTCHA slider successfully.
+3. Observe the state of the login button.",The login button should be enabled.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_16,Login Page,CAPTCHA Slider,Verify CAPTCHA slider is not present when Javascript is disabled on the browser.,"1. Disable Javascript on the browser.
+2. Navigate to the login page.
+3. Check for the CAPTCHA slider.",The CAPTCHA slider should not be present on the page.,,Negative,Test,Fail,Fail,Fail,Pass
+SG_17,Login Page,Forgot Password Link,Verify the 'Forgot Password?' link navigates to the password recovery flow.,"1. Navigate to the login page.
+2. Click the 'Forgot Password?' link.",The page should redirect to the password recovery flow.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_18,Login Page,Forgot Password Link,Verify 'Forgot Password?' link navigates to the correct URL.,"1. Navigate to the login page.
+2. Hover over the 'Forgot Password?' link and observe the URL.",The URL should match the password recovery flow endpoint.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_19,Login Page,Login Button,Verify that clicking the Login button with valid credentials redirects to the dashboard page.,"1. Navigate to the login page.
+2. Enter valid email and password credentials.
+3. Complete CAPTCHA Verification successfully.
+4. Click the Login button.",The page should redirect to the dashboard page.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_20,Login Page,Login Button,Verify that clicking the Login button with invalid credentials displays an error message.,"1. Navigate to the login page.
+2. Enter invalid email or password credentials.
+3. Complete CAPTCHA Verification successfully.
+4. Click the Login button.",An error message should be displayed indicating invalid credentials.,,Negative,Test,Fail,Fail,Fail,Pass
+SG_21,Login Page,Login Button,Verify that login button does not allow submission when captcha verification is missing.,"1. Navigate to the login page.
+2. Enter valid email and password credentials.
+3. Do not complete CAPTCHA Verification
+4. Click the Login button.",An error message should be displayed indicating CAPTCHA is missing and submission fails.,,Negative,Test,Fail,Fail,Fail,Pass
+SG_22,Login Page,Google Sign-in,Verify the divider line with the text 'Or Continue With' is displayed above the Google Sign-in button.,"1. Navigate to the login page.
+2. Check for the divider line and Google Sign-in button.",A divider line with the text 'Or Continue With' should be displayed above the Google Sign-in button.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_23,Login Page,Google Sign-in,Verify clicking the Google Sign-in button initiates the Google OAuth2.0 flow.,"1. Navigate to the login page.
+2. Click the Google Sign-in button.",The page should redirect to the Google account selection or sign-in page.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_24,Login Page,Google Sign-in,Verify successful Google Sign-in redirects to the user's dashboard.,"1. Navigate to the login page.
+2. Click the Google Sign-in button.
+3. Authenticate with a valid Google account.",The page should redirect to the user's dashboard page.,,Positive,Test,Fail,Fail,Fail,Pass
+SG_25,Login Page,Google Sign-in,Verify failed Google Sign-in shows error message or redirects to a login page with an error.,"1. Navigate to the login page.
+2. Click the Google Sign-in button.
+3. Authenticate with an invalid/unauthorized Google account.","An Error message should be displayed on the page, or redirect to the login page with error.",,Negative,Test,Fail,Fail,Fail,Pass
+SG_26,Login Page,Sign-up Link,Verify the 'Sign up' link redirects to the registration page.,"1. Navigate to the login page.
+2. Click the 'Sign up' link.",The page should redirect to the registration page.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_27,Login Page,Sign-up Link,Verify 'Sign up' link navigates to the correct URL.,"1. Navigate to the login page.
+2. Hover over the 'Sign up' link and observe the URL.",The URL should match the registration page endpoint.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_28,Login Page,-,Verify the login page is fully responsive on desktop devices.,"1. Navigate to the login page on a desktop device.
+2. Resize the browser window to different sizes.",The page layout should adjust dynamically to fit the screen size without any visual distortions or overlapping elements.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_29,Login Page,-,Verify the login page is fully responsive on tablet devices.,"1. Navigate to the login page on a tablet device.
+2. Rotate the device between portrait and landscape orientations.",The page layout should adjust dynamically to fit the screen size and orientation without any visual distortions or overlapping elements.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_30,Login Page,-,Verify the login page is fully responsive on mobile devices.,"1. Navigate to the login page on a mobile device.
+2. Rotate the device between portrait and landscape orientations.",The page layout should adjust dynamically to fit the screen size and orientation without any visual distortions or overlapping elements. All elements should be easily accessible and usable.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_31,Login Page,-,Verify all form elements are keyboard-accessible.,"1. Navigate to the login page.
+2. Use the Tab key to navigate through the form elements.","Each form element (email, password, CAPTCHA, login button, Google Sign-in button, Sign up link) should be focusable using the Tab key.",,Positive,Test,Fail,Pass,Pass,Pass
+SG_32,Login Page,-,Verify form elements are compatible with screen readers.,"1. Navigate to the login page.
+2. Enable a screen reader.
+3. Navigate through the form elements.","The screen reader should correctly announce the labels and states of each form element, allowing users to understand and interact with the form.",,Positive,Test,Fail,Fail,Fail,Pass
+SG_33,Login Page,HTTPS Encryption,Verify all data submitted from the login page is encrypted via HTTPS.,"1. Navigate to the login page.
+2. Inspect the network traffic using browser developer tools while submitting the form.","All data submitted should be encrypted with HTTPS, indicated by the 'https' protocol and a valid SSL certificate.",,Positive,Test,Fail,Fail,Fail,Pass
+SG_34,Login Page,HTTPS Encryption,Verify that login page does not load in browser with TLS 1.0 & 1.1 enabled.,"1. Configure browser to enable TLS 1.0 and TLS 1.1.
+2. Navigate to the login page.
+3. Observe network traffic.",Connection to the server is refused and the page does not load.,,Negative,Test,Fail,Fail,Fail,Pass
+SG_35,Login Page,Password Hashing,Verify that the password is securely hashed before submission or storage.,"1. Navigate to the login page.
+2. Submit the login form with valid credentials.
+3. Check the database or server logs to observe how the password is stored.","The password should be securely hashed using a strong hashing algorithm (e.g., bcrypt, Argon2) and a salt before being stored.",,Positive,Test,Fail,Fail,Fail,Pass
+SG_36,Login Page,Brute-Force Protection,Verify the system implements basic protection against brute-force attempts (lockout after N failed attempts).,"1. Navigate to the login page.
+2. Attempt to log in with incorrect credentials multiple times (more than the allowed number of attempts).
+3. Observe the system's response.","After N failed login attempts, the system should lock the account or IP address for a certain period, preventing further login attempts and displaying an appropriate message to the user.",,Positive,Test,Fail,Pass,Pass,Pass
+SG_37,Login Page,Brute-Force Protection,Verify that the system does not lockout the account/IP with correct credentials after multiple failed attempts and a successful login.,"1. Navigate to the login page.
+2. Attempt to log in with incorrect credentials multiple times (less than the allowed number of attempts).
+3. Attempt to log in with correct credentials.
+4. Observe the system's response.","After successful login, the counter for failed attempts should reset, and the system allows logging in.",,Positive,Test,Fail,Pass,Pass,Pass
+SG_38,Login Page,Email Input,Verify the email input field does not accept special characters.,"1. Enter special characters in the email field.
+2. Attempt to submit the form.",The system should display an error message indicating that special characters are not allowed in the email field.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_39,Login Page,Password Input,Verify the password input field accepts special characters.,"1. Enter special characters in the password field.
+2. Attempt to submit the form.",The system should accept special characters in the password field.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_40,Login Page,Email Input,Verify the email input field does not accept leading or trailing whitespaces.,"1. Enter an email with leading and trailing whitespaces.
+2. Attempt to submit the form.",The system should trim the whitespaces and accept the email.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_41,Login Page,Email Input,Verify error message is displayed when email field is left blank.,"1. Leave email field blank.
+2. Enter password.
+3. Complete the CAPTCHA slider successfully.
+4. Click the Login button.",An error message should be displayed indicating 'Email is required'.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_42,Login Page,Password Input,Verify error message is displayed when password field is left blank.,"1. Enter email.
+2. Leave password field blank.
+3. Complete the CAPTCHA slider successfully.
+4. Click the Login button.",An error message should be displayed indicating 'Password is required'.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_43,Login Page,-,Verify that the Login page does not expose the technology stack.,"1. Navigate to the login page.
+2. Inspect the response headers and source code.","The response headers and source code should not expose information about the technology stack being used (e.g., server software, framework versions).",,Positive,Test,Fail,Pass,Pass,Pass
+SG_44,Signup,Logo,Verify the logo is displayed on the signup page.,"1. Navigate to the signup page.
+2. Check for the presence of the logo.",The logo should be visible in the top left/center of the page.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_45,Signup,Logo,Verify the logo is not missing or broken on the signup page.,"1. Navigate to the signup page.
+2. Inspect the logo for any broken image indicators or placeholder.",The logo should be displayed correctly without any broken image indicators.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_46,Signup,Header,Verify the 'Sign Up' header is displayed on the signup page.,"1. Navigate to the signup page.
+2. Check for the presence of the 'Sign Up' header.",The 'Sign Up' header should be visible at the top of the page.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_47,Signup,Header,Verify the 'Sign Up' header is the correct text.,"1. Navigate to the signup page.
+2. Check the header text.",The header text should be exactly 'Sign Up'.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_48,Signup,Title Dropdown,Verify the title dropdown is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the title dropdown.",The title dropdown should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_49,Signup,Title Dropdown,"Verify the title dropdown contains valid options (Mr., Ms., etc.).","1. Navigate to the signup page.
+2. Inspect the options within the title dropdown.","The dropdown should contain 'Mr.', 'Ms.', and other appropriate title options.",,Positive,Test,Fail,Pass,Pass,Pass
+SG_50,Signup,Title Dropdown,Verify the title dropdown is required.,"1. Navigate to the signup page.
+2. Attempt to submit the form without selecting a title.",An error message should be displayed indicating that the title is required.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_51,Signup,First Name Field,Verify the first name text field is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the first name text field.",The first name text field should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_52,Signup,First Name Field,"Verify the first name field accepts valid characters (alphabets, spaces, hyphens).","1. Navigate to the signup page.
+2. Enter a first name containing alphabets, spaces, and hyphens.
+3. Attempt to submit the form.",The form should accept the input and proceed (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_53,Signup,First Name Field,"Verify the first name field rejects invalid characters (numbers, special symbols).","1. Navigate to the signup page.
+2. Enter a first name containing numbers or special symbols.
+3. Attempt to submit the form.",An error message should be displayed indicating that the first name contains invalid characters.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_54,Signup,First Name Field,Verify the first name field is required.,"1. Navigate to the signup page.
+2. Attempt to submit the form without entering a first name.",An error message should be displayed indicating that the first name is required.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_55,Signup,Last Name Field,Verify the last name text field is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the last name text field.",The last name text field should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_56,Signup,Last Name Field,"Verify the last name field accepts valid characters (alphabets, spaces, hyphens).","1. Navigate to the signup page.
+2. Enter a last name containing alphabets, spaces, and hyphens.
+3. Attempt to submit the form.",The form should accept the input and proceed (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_57,Signup,Last Name Field,"Verify the last name field rejects invalid characters (numbers, special symbols).","1. Navigate to the signup page.
+2. Enter a last name containing numbers or special symbols.
+3. Attempt to submit the form.",An error message should be displayed indicating that the last name contains invalid characters.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_58,Signup,Last Name Field,Verify the last name field is required.,"1. Navigate to the signup page.
+2. Attempt to submit the form without entering a last name.",An error message should be displayed indicating that the last name is required.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_59,Signup,Email Field,Verify the email field is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the email field.",The email field should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_60,Signup,Email Field,Verify the email field accepts a valid email format.,"1. Navigate to the signup page.
+2. Enter a valid email address (e.g., test@example.com).
+3. Attempt to submit the form.",The form should accept the input and proceed (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_61,Signup,Email Field,Verify the email field rejects an invalid email format.,"1. Navigate to the signup page.
+2. Enter an invalid email address (e.g., test.example.com).
+3. Attempt to submit the form.",An error message should be displayed indicating that the email is not valid.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_62,Signup,Email Field,Verify the email field is required.,"1. Navigate to the signup page.
+2. Attempt to submit the form without entering an email address.",An error message should be displayed indicating that the email is required.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_63,Signup,Email Field,Verify that the user is not able to sign up with an email address that is already registered.,"1. Navigate to the signup page.
+2. Enter an email address that already exists in the database.
+3. Complete the rest of the form fields.
+4. Attempt to submit the form.",An error message should be displayed indicating that the email address is already registered.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_64,Signup,Phone Number Field,Verify the phone number field with country code selector is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the phone number field and country code selector.",The phone number field and country code selector should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_65,Signup,Phone Number Field,Verify the default country code is +91 for India.,"1. Navigate to the signup page.
+2. Check the default selected country code in the selector.",The default country code should be +91.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_66,Signup,Phone Number Field,Verify the phone number field accepts a valid 10-digit Indian phone number.,"1. Navigate to the signup page.
+2. Select +91 as the country code.
+3. Enter a 10-digit phone number.
+4. Attempt to submit the form.",The form should accept the input and proceed (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_67,Signup,Phone Number Field,Verify the phone number field rejects a phone number with less than 10 digits for India.,"1. Navigate to the signup page.
+2. Select +91 as the country code.
+3. Enter a phone number with less than 10 digits.
+4. Attempt to submit the form.",An error message should be displayed indicating that the phone number is not valid.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_68,Signup,Phone Number Field,Verify the phone number field rejects a phone number with more than 10 digits for India.,"1. Navigate to the signup page.
+2. Select +91 as the country code.
+3. Enter a phone number with more than 10 digits.
+4. Attempt to submit the form.",An error message should be displayed indicating that the phone number is not valid.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_69,Signup,Phone Number Field,Verify the phone number field is required.,"1. Navigate to the signup page.
+2. Attempt to submit the form without entering a phone number.",An error message should be displayed indicating that the phone number is required.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_70,Signup,reCAPTCHA,Verify the Google reCAPTCHA checkbox is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the Google reCAPTCHA checkbox.",The Google reCAPTCHA checkbox should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_71,Signup,reCAPTCHA,Verify the user cannot proceed without completing the Google reCAPTCHA.,"1. Navigate to the signup page.
+2. Fill in all required fields.
+3. Attempt to submit the form without checking the reCAPTCHA checkbox.",An error message should be displayed indicating that the reCAPTCHA must be completed.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_72,Signup,reCAPTCHA,Verify the Google reCAPTCHA passes when completed.,"1. Navigate to the signup page.
+2. Fill in all required fields.
+3. Check the reCAPTCHA checkbox and successfully complete the challenge, if any.
+4. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_73,Signup,Slider Captcha,Verify the slider-based puzzle captcha is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the slider-based puzzle captcha.",The slider-based puzzle captcha should be visible in the signup form.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_74,Signup,Slider Captcha,Verify the user cannot proceed without completing the slider-based captcha.,"1. Navigate to the signup page.
+2. Fill in all required fields.
+3. Check Google reCaptcha if present
+4. Attempt to submit the form without completing the slider-based captcha.",An error message should be displayed indicating that the slider-based captcha must be completed.,,Negative,Test,Fail,Pass,Pass,Pass
+SG_75,Signup,Slider Captcha,Verify the slider-based captcha passes when completed.,"1. Navigate to the signup page.
+2. Fill in all required fields.
+3. Check Google reCaptcha if present
+4. Complete the slider-based captcha successfully.
+5. Attempt to submit the form.",The form should be submitted successfully (if other validations pass).,,Positive,Test,Fail,Pass,Pass,Pass
+SG_76,Signup,Next Button,Verify the 'Next' button is initially disabled.,"1. Navigate to the signup page.
+2. Check the state of the 'Next' button.",The 'Next' button should be disabled.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_77,Signup,Next Button,Verify the 'Next' button is enabled only when all required fields are filled correctly and both CAPTCHAs are passed.,"1. Navigate to the signup page.
+2. Fill in all required fields with valid data.
+3. Complete both CAPTCHAs.
+4. Check the state of the 'Next' button.",The 'Next' button should be enabled.,,Positive,Test,Fail,Pass,Pass,Pass
+SG_78,Signup,Or Signup With Google Button,Verify the 'Or Signup With Google' button is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the 'Or Signup With Google' button.",The 'Or Signup With Google' button should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_79,Signup,Or Signup With Google Button,Verify clicking 'Or Signup With Google' redirects to Google authentication page.,"1. Navigate to the signup page.
+2. Click the 'Or Signup With Google' button.
+3. Check if the page redirects to Google authentication.",The page should redirect to the Google authentication page.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_80,Signup,Or Signup With Google Button,Verify the 'Or Signup With Google' button is working with valid google account.,"1. Navigate to the signup page.
+2. Click the 'Or Signup With Google' button.
+3. Login with valid google account",The user should be signed up succesfully if the google account is valid.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_81,Signup,Already have an account Login Link,Verify the 'Already have an account? Login' link is displayed.,"1. Navigate to the signup page.
+2. Check for the presence of the 'Already have an account? Login' link.",The 'Already have an account? Login' link should be visible in the signup form.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_82,Signup,Already have an account Login Link,Verify clicking 'Already have an account? Login' redirects to the Login page.,"1. Navigate to the signup page.
+2. Click the 'Already have an account? Login' link.
+3. Check if the page redirects to the Login page.",The page should redirect to the Login page.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_83,Signup,Visual Layout,Verify the signup page has a clean and minimal layout.,"1. Navigate to the signup page.
+2. Visually inspect the layout for cleanliness and minimalism.","The layout should appear clean, uncluttered, and visually appealing.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_84,Signup,Visual Layout,Verify the signup page is responsive and adapts to different screen sizes.,"1. Navigate to the signup page.
+2. Resize the browser window to different sizes.
+3. Observe how the page elements respond to the resizing.","The page elements should resize and reposition appropriately, maintaining readability and usability across different screen sizes.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_85,Signup,Visual Layout,Verify the signup page has side-by-side sections for promotional visuals and the signup form.,"1. Navigate to the signup page.
+2. Check for the presence of side-by-side sections: promotional visuals on the left and the signup form on the right.","The page should have two distinct sections, one for promotional visuals and the other for the signup form, arranged side-by-side.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_86,Signup,Visual Layout,Verify the signup form has a pastel green background.,"1. Navigate to the signup page.
+2. Inspect the background color of the signup form.",The background color of the signup form should be pastel green.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_87,Signup,Promotional Visuals,Verify that promotional visuals and the carousel are displayed on the left side of the signup page.,"1. Navigate to the signup page.
+2. Check the left side of the page for promotional visuals and a carousel.",Promotional visuals and the carousel are displayed correctly on the left side.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_88,Signup,Signup Flow,"Verify that after a successful signup, the user is taken to the next step.","1. Navigate to the signup page.
+2. Fill in all required fields with valid data and complete both captchas.
+3. Click on the 'Next' button.
+4. Verify next page is displayed",User should be redirected to the next step page or dashboard after a successful signup.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_89,Signup,General,"Verify error messages are clear, concise, and user-friendly.","1. Navigate to the signup page.
+2. Intentionally trigger various validation errors (e.g., incorrect email format, missing required field).
+3. Examine the displayed error messages.",Error messages should clearly indicate the problem and provide helpful guidance to the user.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_90,Signup,General,Verify the signup form retains entered data after a validation error is displayed.,"1. Navigate to the signup page.
+2. Enter data into all fields, including one field that will trigger a validation error.
+3. Submit the form and observe the error message.
+4. Check if the data in the other fields is still present.",The data in the fields that passed validation should be retained after the error is displayed.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_91,Dashboard,Donation Mode,Verify One Time donation mode is selected by default.,"1. Navigate to the donation section.
+2. Observe which donation mode is selected.",The 'One Time' donation mode should be selected by default.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_92,Dashboard,Donation Mode,Verify Annual Subscription tab is present.,"1. Navigate to the donation section.
+2. Check if both 'One Time' and 'Annual Subscription' tabs are displayed.",Both 'One Time' and 'Annual Subscription' tabs should be present.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_93,Dashboard,Donation Mode,"Verify Annual Subscription tab is clickable, but no functionality is triggered.","1. Navigate to the donation section.
+2. Click on 'Annual Subscription' tab.
+3. Check if 'One Time' tab is still selected or if the page reloads.","Annual Subscription' tab should be clickable. 'One Time' tab should still be selected, and the page should not reload.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_94,Dashboard,Currency Selection,Verify GBP is selected by default.,"1. Navigate to the donation section.
+2. Observe which currency is selected.",GBP (£) should be selected by default.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_95,Dashboard,Currency Selection,Verify user can toggle between GBP and USD.,"1. Navigate to the donation section.
+2. Select USD ($).
+3. Verify USD is selected.
+4. Select GBP (£).
+5. Verify GBP is selected.","User should be able to switch between GBP and USD, and the selected currency should be accurately reflected.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_96,Dashboard,Currency Selection,Verify only one currency can be active at a time.,"1. Navigate to the donation section.
+2. Select USD ($).
+3. Verify only USD is selected and GBP is deselected.",Only one currency should be selected at any given time.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_97,Dashboard,SGC Quantity Selector,Verify quantity defaults to 5 SGCs.,"1. Navigate to the donation section.
+2. Observe the default value in the SGC quantity selector.",The quantity selector should display '5' as the default value.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_98,Dashboard,SGC Quantity Selector,Verify minimum quantity is 1.,"1. Navigate to the donation section.
+2. Use the decrement button to reduce the quantity.
+3. Verify the quantity does not go below 1.",The quantity should not be less than 1.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_99,Dashboard,SGC Quantity Selector,"Verify maximum quantity is 10,000.","1. Navigate to the donation section.
+2. Use the increment button to increase the quantity.
+3. Verify the quantity does not exceed 10,000.","The quantity should not be more than 10,000.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_100,Dashboard,SGC Quantity Selector,Verify increment (+) and decrement (−) buttons enforce boundaries.,"1. Navigate to the donation section.
+2. Set quantity to 1 and click decrement button.
+3. Set quantity to 10,000 and click increment button.","Quantity should remain 1 after decrement and 10,000 after increment.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_101,Dashboard,SGC Quantity Selector,Verify manual input is allowed within the valid range.,"1. Navigate to the donation section.
+2. Manually enter a valid quantity (e.g., 5000) in the quantity selector.",The quantity selector should accept the manually entered value.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_102,Dashboard,SGC Quantity Selector,Verify error modal appears for invalid quantity (less than 1).,"1. Navigate to the donation section.
+2. Manually enter a quantity less than 1 (e.g., 0) in the quantity selector.
+3. Observe if the error modal appears.","An error modal should appear with the title 'Invalid Quantity' and the message 'Please select between 1 and 10,000 Sacred Grove Clusters.'",,Negative,Test,Pass,Pass,Pass,Pass
+SG_103,Dashboard,SGC Quantity Selector,"Verify error modal appears for invalid quantity (greater than 10,000).","1. Navigate to the donation section.
+2. Manually enter a quantity greater than 10,000 (e.g., 10001) in the quantity selector.
+3. Observe if the error modal appears.","An error modal should appear with the title 'Invalid Quantity' and the message 'Please select between 1 and 10,000 Sacred Grove Clusters.'",,Negative,Test,Pass,Pass,Pass,Pass
+SG_104,Dashboard,SGC Quantity Selector,Verify error modal appears for invalid quantity (non-numeric input).,"1. Navigate to the donation section.
+2. Manually enter a non-numeric value (e.g., 'abc') in the quantity selector.
+3. Observe if the error modal appears.","An error modal should appear with the title 'Invalid Quantity' and the message 'Please select between 1 and 10,000 Sacred Grove Clusters.' or a generic error about numeric input.",,Negative,Test,Pass,Pass,Pass,Pass
+SG_105,Dashboard,Total Cost Calculation,Verify total cost updates live based on selected quantity (GBP).,"1. Navigate to the donation section.
+2. Select GBP as currency.
+3. Change the quantity to a specific value (e.g., 10).
+4. Verify the total cost is calculated correctly (quantity * £40).",The total cost should be displayed as the quantity multiplied by £40.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_106,Dashboard,Total Cost Calculation,Verify total cost updates live based on selected quantity (USD).,"1. Navigate to the donation section.
+2. Select USD as currency.
+3. Change the quantity to a specific value (e.g., 10).
+4. Verify the total cost is calculated correctly (quantity * $50).",The total cost should be displayed as the quantity multiplied by $50.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_107,Dashboard,Total Cost Calculation,Verify total cost updates live based on selected currency.,"1. Navigate to the donation section.
+2. Set quantity to 10.
+3. Select GBP as currency and verify cost is £400.
+4. Select USD as currency and verify cost is $500.",Total cost should dynamically change based on selected currency.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_108,Dashboard,Environmental Impact Display,Verify each SGC contributes 158.4 ft² of habitat protected.,"1. Navigate to the donation section.
+2. Set the quantity to 1.
+3. Verify the habitat protected value is 158.4 ft².",The habitat protected value should be 158.4 ft².,,Positive,Test,Pass,Pass,Pass,Pass
+SG_109,Dashboard,Environmental Impact Display,Verify each SGC contributes 0.414 kg of pollution removed over 10 years.,"1. Navigate to the donation section.
+2. Set the quantity to 1.
+3. Verify the pollution removed value is 0.414 kg.",The pollution removed value should be 0.414 kg.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_110,Dashboard,Environmental Impact Display,Verify each SGC contributes 0.176 ton of CO₂ sequestered over 10 years.,"1. Navigate to the donation section.
+2. Set the quantity to 1.
+3. Verify the CO₂ sequestered value is 0.176 ton.",The CO₂ sequestered value should be 0.176 ton.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_111,Dashboard,Environmental Impact Display,Verify each SGC contributes 0.4% biodiversification coverage.,"1. Navigate to the donation section.
+2. Set the quantity to 1.
+3. Verify the biodiversification coverage value is 0.4%.",The biodiversification coverage value should be 0.4%.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_112,Dashboard,Environmental Impact Display,Verify all environmental impact values update based on current SGC count.,"1. Navigate to the donation section.
+2. Set the quantity to 10.
+3. Verify the displayed habitat protected, pollution removed, CO₂ sequestered and biodiversification values are correctly calculated based on the quantity (10x the individual values).",All environmental impact values should be correctly calculated based on the quantity.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_113,Dashboard,Consent Checkbox,Verify consent checkbox text is correct.,"1. Navigate to the donation section.
+2. Verify the consent checkbox text is 'By acquiring SGCs, you consent to the Guardian T&Cs and our Privacy Policy.'",The consent checkbox text should match the expected value.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_114,Dashboard,Consent Checkbox,Verify Pay Now button is disabled by default.,"1. Navigate to the donation section.
+2. Verify that the Pay Now button is disabled upon page load.",The Pay Now button should be initially disabled.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_115,Dashboard,Pay Now Button,Verify Pay Now button is enabled only when valid SGC quantity is selected AND consent checkbox is checked.,"1. Navigate to the donation section.
+2. Set SGC quantity to a valid value (e.g., 5).
+3. Check the consent checkbox.
+4. Verify the Pay Now button is enabled.",The Pay Now button should be enabled.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_116,Dashboard,Pay Now Button,Verify Pay Now button is disabled when SGC quantity is invalid and consent checkbox is checked.,"1. Navigate to the donation section.
+2. Set SGC quantity to an invalid value (e.g., 0).
+3. Check the consent checkbox.
+4. Verify the Pay Now button is disabled.",The Pay Now button should be disabled.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_117,Dashboard,Pay Now Button,Verify Pay Now button is disabled when SGC quantity is valid and consent checkbox is unchecked.,"1. Navigate to the donation section.
+2. Set SGC quantity to a valid value (e.g., 5).
+3. Ensure consent checkbox is unchecked.
+4. Verify the Pay Now button is disabled.",The Pay Now button should be disabled.,,Negative,Test,Pass,Pass,Pass,Pass
+SG_118,Dashboard,Pay Now Button,Verify clicking 'Pay Now' triggers placeholder logic.,"1. Navigate to the donation section.
+2. Set a valid SGC quantity and check the consent box.
+3. Click on the Pay Now button
+4. Observe the redirection or message.","The page should redirect to a success page, or show a confirmation message. (Placeholder behavior).",,Positive,Test,Pass,Pass,Pass,Pass
+SG_119,Dashboard,Responsiveness,Verify page is fully responsive on mobile devices.,"1. Navigate to the donation section on a mobile device or using mobile device emulation in a browser.
+2. Verify that the page elements are properly sized and positioned for the screen size.",The page should render correctly on mobile devices without any overlapping elements or layout issues.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_120,Dashboard,Responsiveness,Verify page is fully responsive on tablet devices.,"1. Navigate to the donation section on a tablet device or using tablet device emulation in a browser.
+2. Verify that the page elements are properly sized and positioned for the screen size.",The page should render correctly on tablet devices without any overlapping elements or layout issues.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_121,Dashboard,Responsiveness,Verify page is fully responsive on desktop devices.,"1. Navigate to the donation section on a desktop device or using a browser window with a desktop-sized resolution.
+2. Verify that the page elements are properly sized and positioned.",The page should render correctly on desktop devices without any overlapping elements or layout issues.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_122,Dashboard,Accessibility,Verify all interactive elements support keyboard navigation.,"1. Navigate to the donation section.
+2. Use the Tab key to navigate through the interactive elements (currency selector, quantity selector, consent checkbox, Pay Now button).
+3. Verify that each element receives focus and can be interacted with using the keyboard (e.g., Spacebar for checkboxes, arrow keys for quantity selector).",All interactive elements should be navigable and operable using the keyboard.,,Positive,Test,Pass,Fail,Pass,Pass
+SG_123,Dashboard,Accessibility,Verify all interactive elements are accessible to screen readers.,"1. Enable a screen reader.
+2. Navigate to the donation section.
+3. Use the screen reader to navigate through the interactive elements.
+4. Verify that the screen reader correctly announces the purpose and state of each element.","The screen reader should accurately describe each interactive element, including its label, role, and current state.",,Positive,Test,Pass,Pass,Pass,Pass
+SG_124,Dashboard,General,Verify page title is correct.,"1. Navigate to the donation section.
+2. Check the page title in the browser tab.",The page title should be relevant to the donation section.,,Positive,Test,Pass,Pass,Pass,Pass
+SG_125,Dashboard,Environmental Impact Display,Verify Environmental impact display is not visible for invalid quantity (0),"1. Navigate to the donation section.
+2. Set the quantity to 0.
+3. Verify that the environmental impact display is not visible.","The habitat protected, pollution removed, CO₂ sequestered and biodiversification values are not visible, or an appropriate message is displayed",,Positive,Test,Pass,Pass,Pass,Pass
+SG_126,Dashboard,Currency Selection,Verify currency symbol display adjacent to amount,"1. Navigate to the donation section.
+2. Select GBP as currency.
+3. Verify currency symbol is displayed adjacent to amount.
+4. Select USD as currency and verify currency symbol is displayed adjacent to amount.",Currency Symbol should be displayed adjacent to the value in both scenarios,,Positive,Test,Pass,Pass,Pass,Pass
+SG_127,Dashboard,Accessibility,Verify correct contrast ratio between text and background for all elements.,"1. Use a color contrast analyzer tool.
+2. Check the contrast ratio of all text elements against their background colors.","The contrast ratio should meet WCAG AA standards (4.5:1 for normal text, 3:1 for large text).",,Positive,Test,Pass,Pass,Pass,Pass
+SG_128,Dashboard,SGC Quantity Selector,Verify error message is displayed when entering special characters in quantity field,"1. Navigate to the donation section.
+2. Manually enter special characters (e.g., '!@#') in the quantity selector.",An error message should be displayed indicating that only numeric values are accepted.,,Negative,Test,Pass,Pass,Pass,Pass
