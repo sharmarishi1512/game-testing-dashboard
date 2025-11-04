@@ -63,47 +63,6 @@ def render():
             except Exception:
                 st.json(saved)
 
-        # Download buttons for the saved JSON and CSV (derived from saved JSON)
-        try:
-            if target.exists():
-                raw_json = target.read_text(encoding="utf-8").encode("utf-8")
-                st.download_button(
-                    "Download saved JSON",
-                    data=raw_json,
-                    file_name="test_cases.json",
-                    mime="application/json",
-                )
-
-                # build CSV from saved records
-                import io, csv
-
-                # build header as union of keys (stable order)
-                headers = []
-                seen = set()
-                for r in saved:
-                    if isinstance(r, dict):
-                        for k in r.keys():
-                            if k not in seen:
-                                seen.add(k)
-                                headers.append(k)
-
-                if headers:
-                    output = io.StringIO()
-                    writer = csv.DictWriter(output, fieldnames=headers)
-                    writer.writeheader()
-                    for r in saved:
-                        if isinstance(r, dict):
-                            writer.writerow({k: r.get(k, "") for k in headers})
-                    csv_bytes = output.getvalue().encode("utf-8")
-                    st.download_button(
-                        "Download CSV (from saved JSON)",
-                        data=csv_bytes,
-                        file_name="test_cases.csv",
-                        mime="text/csv",
-                    )
-        except Exception:
-            pass
-
     with left_col:
         with st.form("tc_form"):
             # bring User Story to first place

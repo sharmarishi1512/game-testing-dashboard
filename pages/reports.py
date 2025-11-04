@@ -64,6 +64,20 @@ def render():
     col2.metric("Top module", f"{top_module} ({top_module_count})")
     col3.metric("Top status", f"{top_status} ({top_status_count})")
 
+    # # Single download button for the saved JSON
+    # try:
+    #     with testcases_file.open("rb") as _f:
+    #         raw_json_bytes = _f.read()
+    #     st.download_button(
+    #         "Download saved JSON",
+    #         data=raw_json_bytes,
+    #         file_name="test_cases.json",
+    #         mime="application/json",
+    #     )
+    # except Exception:
+    #     # If read fails, don't block the UI
+    #     pass
+
     st.markdown("---")
 
     # Sidebar filters
@@ -85,26 +99,42 @@ def render():
 
     st.subheader("Charts")
 
-    # Positive / Negative pie chart
-    try:
-        from collections import Counter
+    # Compute Positive/Negative counts and Module counts, then show side-by-side
+    from collections import Counter
 
-        ctr = Counter()
-        for r in filtered:
-            if not isinstance(r, dict):
-                continue
-            t = (r.get("Test Case Type") or "").strip().lower()
-            if t.startswith("positive"):
-                ctr["Positive"] += 1
-            elif t.startswith("negative"):
-                ctr["Negative"] += 1
-            else:
-                ctr["Other"] += 1
+    # Positive/Negative counts from filtered records
+    pn_ctr = Counter()
+    for r in filtered:
+        if not isinstance(r, dict):
+            continue
+        t = (r.get("Test Case Type") or "").strip().lower()
+        if t.startswith("positive"):
+            pn_ctr["Positive"] += 1
+        elif t.startswith("negative"):
+            pn_ctr["Negative"] += 1
+        else:
+            pn_ctr["Other"] += 1
 
+    # Module counts (use pandas if available for accurate counts)
+    module_counts = None
+    mc_fallback = None
+    if pd is not None:
+        try:
+            df_tmp = pd.DataFrame(filtered)
+            if not df_tmp.empty and "Module" in df_tmp.columns:
+                module_counts = df_tmp["Module"].fillna("<Unknown>").value_counts()
+        except Exception:
+            module_counts = None
+    if module_counts is None:
+        mc_fallback = Counter([get_field(r, "Module") or "<Unknown>" for r in filtered])
+
+    left, right = st.columns(2)
+
+    with left:
         pie_rows = []
         for k in ("Positive", "Negative", "Other"):
-            if ctr.get(k):
-                pie_rows.append({"label": k, "count": int(ctr[k])})
+            if pn_ctr.get(k):
+                pie_rows.append({"label": k, "count": int(pn_ctr[k])})
 
         if pie_rows:
             st.markdown("**Positive vs Negative test cases**")
@@ -123,28 +153,19 @@ def render():
             try:
                 st.vega_lite_chart(pie_rows, spec, use_container_width=True)
             except Exception:
-                st.write(dict(ctr))
-    except Exception:
-        pass
-
-    # Module breakdown (bar chart) and table
-    if pd is not None:
-        df = pd.DataFrame(filtered)
-        if df.empty:
-            st.info("No test cases match the selected filters.")
+                st.write(dict(pn_ctr))
         else:
-            module_counts = df["Module"].fillna("<Unknown>").value_counts()
-            st.markdown("**Test cases by Module**")
+            st.write("No Positive/Negative data to display")
+
+    with right:
+        st.markdown("**Test cases by Module**")
+        if module_counts is not None:
             st.bar_chart(module_counts)
-    else:
-        from collections import Counter
-
-        if len(filtered) == 0:
-            st.info("No test cases match the selected filters.")
         else:
-            mc = Counter([get_field(r, "Module") or "<Unknown>" for r in filtered])
-            st.markdown("**Test cases by Module**")
-            st.write(dict(mc))
+            if not mc_fallback:
+                st.info("No test cases match the selected filters.")
+            else:
+                st.write(dict(mc_fallback))
 
     st.markdown("---")
     st.subheader("Test cases")
