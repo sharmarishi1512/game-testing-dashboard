@@ -18,8 +18,6 @@ def main():
 
 	if choice == "Test Case Generation":
 		page_test_case_generation()
-	elif choice == "Game Automation":
-		page_game_automation()
 	elif choice == "Reports":
 		page_reports()
 

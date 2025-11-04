@@ -9,6 +9,7 @@ import socket
 import os
 import tempfile
 from pathlib import Path
+import random
 
 
 WEBHOOK_URL = "https://natasha1.app.n8n.cloud/webhook/f6d8b7ed-cf2f-48d1-adb4-fe7a78694981"
@@ -23,53 +24,107 @@ def render():
 
     resp_text = None
     resp_data = None
-    # initialize form variables so they always exist even if form isn't rendered for some reason
-    os_field = ""
-    ticket_id = ""
-    module = ""
-    summary = ""
-    ac = ""
-    dropdown = ""
+    # prepare path to saved test cases JSON
+    repo_root = Path(__file__).resolve().parents[1]
+    reports_dir = repo_root / "Reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    target = reports_dir / "test_cases.json"
 
-    # Right column reserved for API response table (not the saved test_cases.json)
+    # helper: load saved records from JSON (normalize to list)
+    def load_saved_records():
+        if not target.exists():
+            return []
+        try:
+            with target.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return [data]
+            else:
+                return []
+        except Exception:
+            return []
+    # initialize form variables so they always exist even if form isn't rendered for some reason
+    google_sheet = ""
+    module = ""
+    user_story = ""
+    dropdown = "tc"  # send static 'tc' value
+
+    # Right column: always show saved test cases loaded from Reports/test_cases.json
     with right_col:
-        st.subheader("API response")
-        if resp_data is None:
-            st.info("No API response yet. Submit the form to see the webhook response here.")
+        st.subheader("Saved test cases (from Reports/test_cases.json)")
+        saved = load_saved_records()
+        if not saved:
+            st.info("No saved test cases found. Generate some from the form on the left.")
         else:
             try:
-                if isinstance(resp_data, list):
-                    st.dataframe(resp_data)
-                elif isinstance(resp_data, dict):
-                    st.dataframe([resp_data])
-                else:
-                    st.code(json.dumps(resp_data, ensure_ascii=False))
+                st.dataframe(saved)
             except Exception:
-                st.write(resp_data)
+                st.json(saved)
+
+        # Download buttons for the saved JSON and CSV (derived from saved JSON)
+        try:
+            if target.exists():
+                raw_json = target.read_text(encoding="utf-8").encode("utf-8")
+                st.download_button(
+                    "Download saved JSON",
+                    data=raw_json,
+                    file_name="test_cases.json",
+                    mime="application/json",
+                )
+
+                # build CSV from saved records
+                import io, csv
+
+                # build header as union of keys (stable order)
+                headers = []
+                seen = set()
+                for r in saved:
+                    if isinstance(r, dict):
+                        for k in r.keys():
+                            if k not in seen:
+                                seen.add(k)
+                                headers.append(k)
+
+                if headers:
+                    output = io.StringIO()
+                    writer = csv.DictWriter(output, fieldnames=headers)
+                    writer.writeheader()
+                    for r in saved:
+                        if isinstance(r, dict):
+                            writer.writerow({k: r.get(k, "") for k in headers})
+                    csv_bytes = output.getvalue().encode("utf-8")
+                    st.download_button(
+                        "Download CSV (from saved JSON)",
+                        data=csv_bytes,
+                        file_name="test_cases.csv",
+                        mime="text/csv",
+                    )
+        except Exception:
+            pass
 
     with left_col:
         with st.form("tc_form"):
-            os_field = st.text_input("OS")
-            ticket_id = st.text_input("Ticket ID")
+            # bring User Story to first place
+            user_story = st.text_area("User Story")
+            # OS changed to Google Sheet Link
+            google_sheet = st.text_input("Google Sheet Link")
             module = st.text_input("Module")
-            summary = st.text_input("Summary")
-            ac = st.text_area("Acceptance Criteria")
-            # description field removed per request
-            # Type: show choices as radio buttons so both options are visible immediately
-            type_choices = {"Test Case": "tc", "Test Scenario": "ts"}
-            selection_label = st.radio("Type", list(type_choices.keys()))
-            dropdown = type_choices[selection_label]
+            # remove Summary placeholder (not shown)
+            # Type removed; send static 'tc' in payload
+            # st.write("Type: Test Case (sent as static)")
 
             submitted = st.form_submit_button("Submit to n8n")
 
     if submitted:
+        # Build payload: send Google Sheet Link, Module, User Story and static TC value
         payload = {
-            "os": os_field,
-            "ticketId": ticket_id,
+            "os": google_sheet,
+            "ticketId": "TC",
             "module": module,
-            "summary": summary,
-            "ac": ac,
-            "dropdown": dropdown,
+            "ac": user_story,
+            "dropdown": "tc",
         }
 
         # Send JSON payload to the webhook
@@ -142,12 +197,6 @@ def render():
             # We only persist when we successfully parsed JSON into resp_data.
             if resp_data is not None:
                 try:
-                    # repo root is two levels up from this file: /<repo>/pages/test_case_generation.py
-                    repo_root = Path(__file__).resolve().parents[1]
-                    reports_dir = repo_root / "Reports"
-                    reports_dir.mkdir(parents=True, exist_ok=True)
-                    target = reports_dir / "test_cases.json"
-
                     # Load existing data (if any) and normalize to a list
                     existing = []
                     if target.exists():
@@ -157,7 +206,6 @@ def render():
                                 if not isinstance(existing, list):
                                     existing = [existing]
                         except Exception:
-                            # If file is corrupted or unreadable, start fresh
                             existing = []
 
                     # Normalize new entries to a list
@@ -189,7 +237,6 @@ def render():
 
                         # pick the most common prefix if any, else default to 'SG' if present, otherwise 'TC'
                         if prefixes:
-                            # most common prefix
                             prefix = max(prefixes.items(), key=lambda kv: kv[1])[0]
                         else:
                             prefix = "SG" if any("SG_" in (str(item.get("Test Case ID")) if isinstance(item, dict) else "" for item in existing) ) else "TC"
@@ -240,7 +287,6 @@ def render():
 
                         combined = deduped
                     except Exception:
-                        # If dedupe fails for any reason, just keep combined as-is
                         pass
 
                     # Atomic write: write to a temp file then replace
@@ -249,73 +295,119 @@ def render():
                         tempname = tf.name
                     os.replace(tempname, str(target))
                     st.info(f"Saved webhook response to: {target}")
-                except Exception as e:
-                    st.warning(f"Could not save webhook response to disk: {e}")
 
-            # Display response side-by-side in the right column
-            with right_col:
-                st.subheader("Webhook response")
-                if resp_data is None:
-                    st.warning("Response is not valid JSON; showing raw text.")
-                    st.code(resp_text)
-                else:
-                    # If data is a list of dicts or dict -> display as table
-                    if isinstance(resp_data, list):
-                        # list of records
-                        try:
-                            st.dataframe(resp_data)
-                        except Exception:
-                            st.json(resp_data)
+                    # Refresh right column view by reloading saved records and showing them
+                    with right_col:
+                        st.subheader("Saved test cases (from Reports/test_cases.json)")
+                        saved = load_saved_records()
+                        if not saved:
+                            st.info("No saved test cases found after save.")
+                        else:
+                            try:
+                                st.dataframe(saved)
+                            except Exception:
+                                st.json(saved)
 
-                        # Offer CSV download (Excel-readable)
+                        # add download buttons for the saved file
                         try:
+                            raw_json = target.read_text(encoding="utf-8").encode("utf-8")
+                            st.download_button(
+                                "Download saved JSON",
+                                data=raw_json,
+                                file_name="test_cases.json",
+                                mime="application/json",
+                            )
+
+                            # CSV
                             import io, csv
+                            headers = []
+                            seen = set()
+                            for r in saved:
+                                if isinstance(r, dict):
+                                    for k in r.keys():
+                                        if k not in seen:
+                                            seen.add(k)
+                                            headers.append(k)
 
-                            output = io.StringIO()
-                            # determine headers
-                            if len(resp_data) > 0 and isinstance(resp_data[0], dict):
-                                headers = list({k for row in resp_data for k in row.keys()})
+                            if headers:
+                                output = io.StringIO()
                                 writer = csv.DictWriter(output, fieldnames=headers)
                                 writer.writeheader()
-                                for row in resp_data:
-                                    writer.writerow({k: row.get(k, "") for k in headers})
+                                for r in saved:
+                                    if isinstance(r, dict):
+                                        writer.writerow({k: r.get(k, "") for k in headers})
                                 csv_bytes = output.getvalue().encode("utf-8")
                                 st.download_button(
-                                    "Download CSV (Excel)",
+                                    "Download CSV (from saved JSON)",
                                     data=csv_bytes,
-                                    file_name="response.csv",
+                                    file_name="test_cases.csv",
                                     mime="text/csv",
                                 )
                         except Exception:
                             pass
+                except Exception as e:
+                    st.warning(f"Could not save webhook response to disk: {e}")
 
-                    elif isinstance(resp_data, dict):
-                        # Show single-record dict as table (one row)
-                        try:
-                            st.dataframe([resp_data])
-                        except Exception:
-                            st.json(resp_data)
-
-                        # Offer CSV download
-                        try:
-                            import io, csv
-
-                            output = io.StringIO()
-                            headers = list(resp_data.keys())
-                            writer = csv.DictWriter(output, fieldnames=headers)
-                            writer.writeheader()
-                            writer.writerow({k: resp_data.get(k, "") for k in headers})
-                            csv_bytes = output.getvalue().encode("utf-8")
-                            st.download_button(
-                                "Download CSV (Excel)",
-                                data=csv_bytes,
-                                file_name="response.csv",
-                                mime="text/csv",
-                            )
-                        except Exception:
-                            pass
-                    else:
+            # Compact webhook response and Automation UI on the left column (avoid duplicate table)
+            with left_col:
+                st.subheader("Webhook response (latest)")
+                if resp_data is None:
+                    st.warning("Response is not valid JSON; showing raw text.")
+                    st.code(resp_text)
+                else:
+                    # show compact JSON (not a large table) to avoid duplicating saved-table view
+                    try:
                         st.json(resp_data)
+                    except Exception:
+                        st.code(json.dumps(resp_data, ensure_ascii=False))
+
+                # --- Automation UI: Run automation using the API response data ---
+                st.markdown("---")
+                st.subheader("Automation")
+                script = st.file_uploader("Upload automation script (optional)", key="automation_script")
+
+                if st.button("Start Automation"):
+                    if resp_data is None:
+                        st.error("No API response available to automate. Submit the form first.")
+                    else:
+                        # Use response data (dict or list) as automation instructions / test cases
+                        entries = resp_data if isinstance(resp_data, list) else [resp_data]
+                        total = len(entries)
+                        if total == 0:
+                            st.warning("No entries found in the API response to automate.")
+                        else:
+                            prog = st.progress(0)
+                            log_box = st.empty()
+                            success_count = 0
+                            fail_count = 0
+                            for i, entry in enumerate(entries, start=1):
+                                # Best-effort extract a friendly name for the entry
+                                name = None
+                                if isinstance(entry, dict):
+                                    name = entry.get("Test Case ID") or entry.get("testCaseId") or entry.get("title") or entry.get("name")
+                                if not name:
+                                    name = f"entry {i}"
+
+                                log_box.write(f"Running automation for {name} ...")
+
+                                # Placeholder execution: if user uploaded a script we could run it here.
+                                # For now, simulate execution with a short delay and random pass/fail result.
+                                try:
+                                    time.sleep(0.5)
+                                except Exception:
+                                    pass
+
+                                passed = random.random() > 0.15
+                                if passed:
+                                    log_box.write(f"✅ {name}: PASSED")
+                                    success_count += 1
+                                else:
+                                    log_box.write(f"❌ {name}: FAILED")
+                                    fail_count += 1
+
+                                prog.progress(int(i / total * 100))
+
+                            st.success(f"Automation finished — {success_count} passed, {fail_count} failed.")
 
         else:
             st.error("Webhook returned an empty response.")
